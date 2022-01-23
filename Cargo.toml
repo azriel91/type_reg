@@ -1,0 +1,24 @@
+[package]
+name = "type_reg"
+version = "0.1.0"
+authors = ["Azriel Hoh <azriel91@gmail.com>"]
+edition = "2021"
+description = "Serializable map of any type."
+repository = "https://github.com/azriel91/type_reg"
+documentation = "https://docs.rs/type_reg/"
+readme = "README.md"
+keywords = ["serializable", "type", "registry"]
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+downcast-rs = "1.2.0"
+erased-serde = "0.3.18"
+serde = { version = "1.0.133", features = ["derive"] }
+serde_tagged = "0.2.0"
+
+[dev-dependencies]
+serde_yaml = "0.8.23"
+
+[features]
+default = []
+debug = []

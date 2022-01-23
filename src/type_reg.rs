@@ -1,0 +1,161 @@
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    fmt,
+    hash::Hash,
+    ops::{Deref, DerefMut},
+};
+
+use serde::de::DeserializeSeed;
+use serde_tagged::de::{BoxFnSeed, SeedFactory};
+
+use crate::{de::TypeMapVisitor, DataType, TypeMap};
+
+/// Map from a given key to logic to deserialize a type.
+pub struct TypeReg<'key>(HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
+
+impl<'key> TypeReg<'key> {
+    // Creates an empty `TypeReg`.
+    ///
+    /// The map is initially created with a capacity of 0, so it will not
+    /// allocate until it is first inserted into.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::TypeReg;
+    /// let mut type_reg = TypeReg::<&'static str>::new();
+    /// ```
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    /// Creates an empty `TypeReg` with the specified capacity.
+    ///
+    /// The map will be able to hold at least capacity elements without
+    /// reallocating. If capacity is 0, the map will not allocate.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::TypeReg;
+    /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
+    /// ```
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(HashMap::with_capacity(capacity))
+    }
+
+    pub fn register<R>(&mut self)
+    where
+        R: serde::de::DeserializeOwned + DataType + 'static,
+    {
+        fn deserialize<'de, R>(
+            deserializer: &mut dyn erased_serde::Deserializer<'de>,
+        ) -> Result<Box<dyn DataType>, erased_serde::Error>
+        where
+            R: serde::de::DeserializeOwned + DataType + 'static,
+        {
+            Ok(Box::new(R::deserialize(deserializer)?))
+        }
+
+        self.0.insert(
+            Cow::Borrowed(std::any::type_name::<R>()),
+            BoxFnSeed::new(deserialize::<R>),
+        );
+    }
+
+    pub fn deserialize_map<'de, MapK, D, E>(&'de self, deserializer: D) -> Result<TypeMap<MapK>, E>
+    where
+        MapK: Eq
+            + Hash
+            + fmt::Debug
+            + Send
+            + Sync
+            + serde::Serialize
+            + serde::Deserialize<'de>
+            + 'static,
+        D: serde::de::Deserializer<'de, Error = E>,
+        E: serde::de::Error,
+    {
+        let visitor = TypeMapVisitor::new(self);
+        deserializer.deserialize_map(visitor)
+    }
+
+    pub fn deserialize_untyped<'de, D, E>(
+        &'de self,
+        deserializer: D,
+    ) -> Result<Box<dyn DataType>, E>
+    where
+        D: serde::de::Deserializer<'de, Error = E>,
+        E: serde::de::Error,
+    {
+        serde_tagged::de::external::deserialize(deserializer, self)
+    }
+}
+
+impl<'key> Default for TypeReg<'key> {
+    fn default() -> Self {
+        Self(HashMap::default())
+    }
+}
+
+impl<'key> Deref for TypeReg<'key> {
+    type Target = HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<'key> DerefMut for TypeReg<'key> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+// Used by [`serde_tagged`] to select which [`DeserializeSeed`] function to use.
+impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'key> {
+    type Seed = &'r BoxFnSeed<Box<dyn DataType>>;
+    type Value = Box<dyn DataType>;
+
+    fn seed<E>(self, type_tag: Cow<'de, str>) -> Result<Self::Seed, E>
+    where
+        E: serde::de::Error,
+    {
+        self.0.get(&type_tag).ok_or_else(|| {
+            use std::fmt::Write;
+            let mut message = String::with_capacity(256);
+            write!(
+                message,
+                "Type `{type_tag:?}` not registered in type registry."
+            )
+            .expect("Failed to write error message");
+
+            message.push_str("\nAvailable types are: [");
+            let mut message = self
+                .0
+                .keys()
+                .try_fold(message, |mut message, key| {
+                    write!(message, "{key:?},")?;
+                    Result::<_, fmt::Error>::Ok(message)
+                })
+                .expect("Failed to write error message");
+            message.push_str("]");
+
+            serde::de::Error::custom(message)
+        })
+    }
+}
+
+// Used when [`TypeReg`] is used as the seed to deserialize an arbitrary
+// [`DataType`].
+impl<'key: 'de, 'de: 'r, 'r> DeserializeSeed<'de> for &'r TypeReg<'key> {
+    type Value = Box<dyn DataType>;
+
+    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        serde_tagged::de::external::deserialize(deserializer, self)
+    }
+}
