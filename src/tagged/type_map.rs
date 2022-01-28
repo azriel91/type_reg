@@ -1,11 +1,12 @@
 use std::{
+    borrow::Borrow,
     collections::HashMap,
     fmt,
     hash::Hash,
     ops::{Deref, DerefMut},
 };
 
-use crate::{DataType, TypeNameLit};
+use crate::{tagged::DataType, TypeNameLit};
 
 /// Map of types that can be serialized / deserialized.
 #[derive(serde::Serialize)]
@@ -25,7 +26,7 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use type_reg::TypeMap;
+    /// use type_reg::tagged::TypeMap;
     /// let mut type_reg = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
@@ -40,11 +41,32 @@ where
     /// # Examples
     ///
     /// ```rust
-    /// use type_reg::TypeMap;
+    /// use type_reg::tagged::TypeMap;
     /// let type_reg = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
         Self(HashMap::with_capacity(capacity))
+    }
+
+    ///
+    #[cfg(not(feature = "debug"))]
+    pub fn get<R, Q>(&self, q: &Q) -> Option<&R>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+        R: serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.get(q).and_then(|n| n.downcast_ref::<R>())
+    }
+
+    #[cfg(feature = "debug")]
+    pub fn get<R, Q>(&self, q: &Q) -> Option<&R>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.get(q).and_then(|n| n.downcast_ref::<R>())
     }
 }
 

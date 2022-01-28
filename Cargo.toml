@@ -19,6 +19,15 @@ serde_tagged = "0.2.0"
 [dev-dependencies]
 serde_yaml = "0.8.23"
 
+[[example]]
+name = "tagged_serialize"
+required-features = ["tagged"]
+
+[[example]]
+name = "tagged_deserialize_map"
+required-features = ["tagged"]
+
 [features]
 default = []
 debug = []
+tagged = []

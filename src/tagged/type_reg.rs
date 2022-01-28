@@ -9,7 +9,7 @@ use std::{
 use serde::de::DeserializeSeed;
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::{de::TypeMapVisitor, DataType, TypeMap};
+use crate::tagged::{DataType, TypeMap, TypeMapVisitor};
 
 /// Map from a given key to logic to deserialize a type.
 pub struct TypeReg<'key>(HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
@@ -23,8 +23,8 @@ impl<'key> TypeReg<'key> {
     /// # Examples
     ///
     /// ```rust
-    /// use type_reg::TypeReg;
-    /// let mut type_reg = TypeReg::<&'static str>::new();
+    /// use type_reg::tagged::TypeReg;
+    /// let mut type_reg = TypeReg::new();
     /// ```
     pub fn new() -> Self {
         Self(HashMap::new())
@@ -38,13 +38,34 @@ impl<'key> TypeReg<'key> {
     /// # Examples
     ///
     /// ```rust
-    /// use type_reg::TypeReg;
-    /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
+    /// use type_reg::tagged::TypeReg;
+    /// let type_reg = TypeReg::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
         Self(HashMap::with_capacity(capacity))
     }
 
+    /// Registers a type in this type registry.
+    ///
+    /// Each type must be registered in this type registry before attempting to
+    /// deserialize the type, or map of types.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeReg;
+    ///
+    /// let mut type_reg = TypeReg::new();
+    /// type_reg.register::<u32>();
+    ///
+    /// // This may be any deserializer.
+    /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+    ///
+    /// let data_type_u32 = type_reg.deserialize_single(deserializer).unwrap();
+    /// let data_type_u32 = data_type_u32.downcast_ref::<u32>().copied();
+    ///
+    /// println!("{data_type_u32:?}"); // prints "1"
+    /// ```
     pub fn register<R>(&mut self)
     where
         R: serde::de::DeserializeOwned + DataType + 'static,
@@ -64,6 +85,32 @@ impl<'key> TypeReg<'key> {
         );
     }
 
+    /// Deserializes a map of arbitrary values into a [`TypeMap`].
+    ///
+    /// Each type must be registered in this type registry before attempting to
+    /// deserialize the type.
+    ///
+    /// ```rust
+    /// use type_reg::tagged::{TypeMap, TypeReg};
+    ///
+    /// let mut type_reg = TypeReg::new();
+    /// type_reg.register::<u32>();
+    /// type_reg.register::<u64>();
+    ///
+    /// // This may be any deserializer.
+    /// let deserializer = serde_yaml::Deserializer::from_str(
+    ///     "---\n\
+    ///     one: { u32: 1 }\n\
+    ///     two: { u64: 2 }\n\
+    ///     ",
+    /// );
+    ///
+    /// let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
+    /// let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();
+    /// let data_u64 = type_map.get::<u64, _>("two").copied().unwrap();
+    ///
+    /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
+    /// ```
     pub fn deserialize_map<'de, MapK, D, E>(&'de self, deserializer: D) -> Result<TypeMap<MapK>, E>
     where
         MapK: Eq
@@ -81,10 +128,26 @@ impl<'key> TypeReg<'key> {
         deserializer.deserialize_map(visitor)
     }
 
-    pub fn deserialize_untyped<'de, D, E>(
-        &'de self,
-        deserializer: D,
-    ) -> Result<Box<dyn DataType>, E>
+    /// Deserializes an arbitrary value into a [`DataType`].
+    ///
+    /// Each type must be registered in this type registry before attempting to
+    /// deserialize the type.
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeReg;
+    ///
+    /// let mut type_reg = TypeReg::new();
+    /// type_reg.register::<u32>();
+    ///
+    /// // This may be any deserializer.
+    /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+    ///
+    /// let data_type_u32 = type_reg.deserialize_single(deserializer).unwrap();
+    /// let data_type_u32 = data_type_u32.downcast_ref::<u32>().copied();
+    ///
+    /// println!("{data_type_u32:?}"); // prints "1"
+    /// ```
+    pub fn deserialize_single<'de, D, E>(&'de self, deserializer: D) -> Result<Box<dyn DataType>, E>
     where
         D: serde::de::Deserializer<'de, Error = E>,
         E: serde::de::Error,

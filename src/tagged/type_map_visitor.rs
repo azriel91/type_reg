@@ -1,6 +1,6 @@
 use std::{fmt, hash::Hash, marker::PhantomData};
 
-use crate::{TypeMap, TypeReg};
+use crate::tagged::{TypeMap, TypeReg};
 
 /// A visitor that can be used to deserialize a map of externally tagged values.
 ///
