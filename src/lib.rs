@@ -2,6 +2,8 @@
 
 #[cfg(feature = "tagged")]
 pub mod tagged;
+#[cfg(feature = "untagged")]
+pub mod untagged;
 
 pub use crate::type_name_lit::TypeNameLit;
 

@@ -31,7 +31,20 @@ required-features = ["tagged"]
 name = "tagged_deserialize_map"
 required-features = ["tagged"]
 
+[[example]]
+name = "untagged_serialize"
+required-features = ["untagged"]
+
+[[example]]
+name = "untagged_deserialize_single"
+required-features = ["untagged"]
+
+[[example]]
+name = "untagged_deserialize_map"
+required-features = ["untagged"]
+
 [features]
 default = []
 debug = []
 tagged = []
+untagged = []
