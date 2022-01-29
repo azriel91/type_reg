@@ -1,0 +1,9 @@
+[default]
+features = "tagged untagged"
+
+[debug]
+features = "tagged untagged debug"
+
+[report]
+out = ["Html", "Xml"]
+output-dir = "target/tarpaulin"
