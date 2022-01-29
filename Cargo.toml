@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["serializable", "type", "registry"]
 license = "MIT OR Apache-2.0"
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 downcast-rs = "1.2.0"
 erased-serde = "0.3.18"
