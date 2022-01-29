@@ -1,6 +1,7 @@
 use std::fmt;
 
-/// `&'static str` newtype whose `Debug` / `Display` impl do not output double quotes.
+/// `&'static str` newtype whose `Debug` / `Display` impl do not output double
+/// quotes.
 #[derive(PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TypeNameLit(pub(crate) &'static str);
 
