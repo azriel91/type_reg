@@ -61,10 +61,10 @@ impl<'key> TypeReg<'key> {
     /// // This may be any deserializer.
     /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
     ///
-    /// let data_type_u32 = type_reg.deserialize_single(deserializer).unwrap();
-    /// let data_type_u32 = data_type_u32.downcast_ref::<u32>().copied();
+    /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
+    /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
     ///
-    /// println!("{data_type_u32:?}"); // prints "1"
+    /// println!("{data_u32:?}"); // prints "1"
     /// ```
     pub fn register<R>(&mut self)
     where
@@ -89,6 +89,8 @@ impl<'key> TypeReg<'key> {
     ///
     /// Each type must be registered in this type registry before attempting to
     /// deserialize the type.
+    ///
+    /// # Examples
     ///
     /// ```rust
     /// use type_reg::tagged::{TypeMap, TypeReg};
@@ -133,6 +135,8 @@ impl<'key> TypeReg<'key> {
     /// Each type must be registered in this type registry before attempting to
     /// deserialize the type.
     ///
+    /// # Examples
+    ///
     /// ```rust
     /// use type_reg::tagged::TypeReg;
     ///
@@ -142,10 +146,10 @@ impl<'key> TypeReg<'key> {
     /// // This may be any deserializer.
     /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
     ///
-    /// let data_type_u32 = type_reg.deserialize_single(deserializer).unwrap();
-    /// let data_type_u32 = data_type_u32.downcast_ref::<u32>().copied();
+    /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
+    /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
     ///
-    /// println!("{data_type_u32:?}"); // prints "1"
+    /// println!("{data_u32:?}"); // prints "1"
     /// ```
     pub fn deserialize_single<'de, D, E>(&'de self, deserializer: D) -> Result<Box<dyn DataType>, E>
     where

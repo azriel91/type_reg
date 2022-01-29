@@ -9,19 +9,18 @@ use crate::tagged::{TypeMap, TypeReg};
 /// value that should be deserialized. Thus it will return an error if the
 /// visited type is not a map.
 ///
-/// The [`SeedFactory`](::de::SeedFactory) provided to this visitor
-/// provides a `serde::de::DeserializeSeed` implementation depending on the tag,
-/// which then determines how the value is going to be deserialized.
+/// The [`TypeReg`] provided to this visitor provides a [`DeserializeSeed`]
+/// implementation depending on the tag, which then determines how the value is
+/// going to be deserialized.
 ///
-/// See [`de`](::de) for more information on
-/// [`SeedFactory`](::de::SeedFactory) and implementations thereof.
+/// [`DeserializeSeed`]: serde::de::DeserializeSeed
 pub struct TypeMapVisitor<'key, 'r, MapK> {
     type_reg: &'r TypeReg<'key>,
     marker: PhantomData<MapK>,
 }
 
 impl<'key, 'r, MapK> TypeMapVisitor<'key, 'r, MapK> {
-    /// Creates a new visitor with the given [`SeedFactory`](::de::SeedFactory).
+    /// Creates a new visitor with the given [`TypeReg`].
     pub fn new(type_reg: &'r TypeReg<'key>) -> Self {
         TypeMapVisitor {
             type_reg,
@@ -52,7 +51,7 @@ where
         while let Some(key) = map.next_key::<MapK>()? {
             let value = map.next_value_seed(self.type_reg)?;
 
-            type_map.insert(key, value);
+            type_map.insert_raw(key, value);
         }
 
         Ok(type_map)

@@ -24,6 +24,10 @@ name = "tagged_serialize"
 required-features = ["tagged"]
 
 [[example]]
+name = "tagged_deserialize_single"
+required-features = ["tagged"]
+
+[[example]]
 name = "tagged_deserialize_map"
 required-features = ["tagged"]
 

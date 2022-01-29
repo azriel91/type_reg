@@ -27,7 +27,7 @@ where
     ///
     /// ```rust
     /// use type_reg::tagged::TypeMap;
-    /// let mut type_reg = TypeMap::<&'static str>::new();
+    /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
         Self(HashMap::new())
@@ -42,13 +42,31 @@ where
     ///
     /// ```rust
     /// use type_reg::tagged::TypeMap;
-    /// let type_reg = TypeMap::<&'static str>::with_capacity(10);
+    /// let type_map = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
         Self(HashMap::with_capacity(capacity))
     }
 
+    /// Returns a reference to the value corresponding to the key.
     ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeMap;
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let one = type_map.get::<u32, _>("one").copied();
+    /// assert_eq!(Some(1), one);
+    /// ```
     #[cfg(not(feature = "debug"))]
     pub fn get<R, Q>(&self, q: &Q) -> Option<&R>
     where
@@ -59,6 +77,25 @@ where
         self.0.get(q).and_then(|n| n.downcast_ref::<R>())
     }
 
+    /// Returns a reference to the value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeMap;
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let one = type_map.get::<u32, _>("one").copied();
+    /// assert_eq!(Some(1), one);
+    /// ```
     #[cfg(feature = "debug")]
     pub fn get<R, Q>(&self, q: &Q) -> Option<&R>
     where
@@ -67,6 +104,106 @@ where
         R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.0.get(q).and_then(|n| n.downcast_ref::<R>())
+    }
+
+    /// Returns a mutable reference to the value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeMap;
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let mut one = type_map.get_mut::<u32, _>("one");
+    /// one.as_mut().map(|n| **n += 1);
+    /// assert_eq!(Some(2), one.copied());
+    /// ```
+    #[cfg(not(feature = "debug"))]
+    pub fn get_mut<R, Q>(&mut self, q: &Q) -> Option<&mut R>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+        R: serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
+    }
+
+    /// Returns a mutable reference to the value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::tagged::TypeMap;
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let mut one = type_map.get_mut::<u32, _>("one");
+    /// one.as_mut().map(|n| **n += 1);
+    /// assert_eq!(Some(2), one.copied());
+    #[cfg(feature = "debug")]
+    pub fn get_mut<R, Q>(&mut self, q: &Q) -> Option<&mut R>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
+    }
+
+    /// Inserts a key-value pair into the map.
+    ///
+    /// If the map did not have this key present, `None` is returned.
+    ///
+    /// If the map did have this key present, the value is updated, and the old
+    /// value is returned. The key is not updated, though; this matters for
+    /// types that can be `==` without being identical.
+    #[cfg(not(feature = "debug"))]
+    pub fn insert<R>(&mut self, k: K, r: R) -> Option<Box<dyn DataType>>
+    where
+        R: serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.insert(k, Box::new(r))
+    }
+
+    /// Inserts a key-value pair into the map.
+    ///
+    /// If the map did not have this key present, `None` is returned.
+    ///
+    /// If the map did have this key present, the value is updated, and the old
+    /// value is returned. The key is not updated, though; this matters for
+    /// types that can be `==` without being identical.
+    #[cfg(feature = "debug")]
+    pub fn insert<R>(&mut self, k: K, r: R) -> Option<Box<dyn DataType>>
+    where
+        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.insert(k, Box::new(r))
+    }
+
+    /// Inserts a key-value pair into the map.
+    ///
+    /// If the map did not have this key present, `None` is returned.
+    ///
+    /// If the map did have this key present, the value is updated, and the old
+    /// value is returned. The key is not updated, though; this matters for
+    /// types that can be `==` without being identical.
+    pub fn insert_raw(&mut self, k: K, v: Box<dyn DataType>) -> Option<Box<dyn DataType>> {
+        self.0.insert(k, v)
     }
 }
 
@@ -105,14 +242,6 @@ where
 #[derive(Debug)]
 struct TypedValue<'a> {
     r#type: TypeNameLit,
-    value: &'a dyn fmt::Debug,
-}
-
-// This is used in the Debug impl, but for some reason rustc warns the fields
-// are not used.
-#[allow(dead_code)]
-#[derive(Debug)]
-struct UntypedValue<'a> {
     value: &'a dyn fmt::Debug,
 }
 

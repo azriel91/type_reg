@@ -6,9 +6,17 @@ struct A(u32);
 
 fn main() {
     let mut type_map = TypeMap::new();
-    type_map.insert("one", Box::new(1u32));
-    type_map.insert("two", Box::new(2u64));
-    type_map.insert("three", Box::new(A(3)));
+    type_map.insert("one", 1u32);
+    type_map.insert("two", 2u64);
+    type_map.insert("three", A(3));
 
     println!("{}", serde_yaml::to_string(&type_map).unwrap());
+
+    // ---
+    // one:
+    //   u32: 1
+    // three:
+    //   "tagged_serialize::A": 3
+    // two:
+    //   u64: 2
 }
