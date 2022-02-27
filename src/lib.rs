@@ -22,6 +22,9 @@
 //!
 //! ### Tagged Type Registry
 //!
+//! ⚠️ **Note:** This uses [`std::any::type_name`] internally, which is not
+//! stable.
+//!
 //! #### Serialization
 //!
 //! ```rust

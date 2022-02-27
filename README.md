@@ -27,6 +27,8 @@ type_reg = { version = "0.1.0", features = ["ordered"] }
 
 ### Tagged Type Registry
 
+⚠️ **Note:** This uses [`std::any::type_name`] internally, which is not stable.
+
 #### Serialization
 
 ```rust
@@ -163,3 +165,4 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 [LICENSE-APACHE]: LICENSE-APACHE
 [LICENSE-MIT]: LICENSE-MIT
+[`std::any::type_name`]: https://doc.rust-lang.org/std/any/fn.type_name.html
