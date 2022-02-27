@@ -234,3 +234,49 @@ where
         self.deserialize_seed(&type_tag)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::untagged::{TypeMap, TypeReg};
+    use serde::{Deserialize, Serialize};
+
+    #[test]
+    fn deserialize_single() {
+        let mut type_reg = TypeReg::<String>::new();
+        type_reg.register::<u32>(String::from("one"));
+
+        let deserializer = serde_yaml::Deserializer::from_str("one: 1");
+        let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
+        let data_u32 = data_u32.downcast_ref::<u32>().copied();
+
+        assert_eq!(Some(1), data_u32);
+    }
+
+    #[test]
+    fn deserialize_map() {
+        let mut type_reg = TypeReg::<String>::new();
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<u64>(String::from("two"));
+        type_reg.register::<A>(String::from("three"));
+
+        let serialized = "---\n\
+        one: 1\n\
+        two: 2\n\
+        three: 3\n\
+        ";
+
+        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
+
+        let data_u32 = type_map.get::<u32, _>("one").copied();
+        let data_u64 = type_map.get::<u64, _>("two").copied();
+        let data_a = type_map.get::<A, _>("three").copied();
+
+        assert_eq!(Some(1u32), data_u32);
+        assert_eq!(Some(2u64), data_u64);
+        assert_eq!(Some(A(3)), data_a);
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+    struct A(u32);
+}
