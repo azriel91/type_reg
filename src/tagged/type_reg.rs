@@ -203,16 +203,16 @@ impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'ke
             )
             .expect("Failed to write error message");
 
-            message.push_str("\nAvailable types are: [");
+            message.push_str("\nAvailable types are:\n\n");
             let mut message = self
                 .0
                 .keys()
                 .try_fold(message, |mut message, key| {
-                    write!(message, "{key:?},")?;
+                    writeln!(message, "- {key:?}")?;
                     Result::<_, fmt::Error>::Ok(message)
                 })
                 .expect("Failed to write error message");
-            message.push_str("]");
+            message.push_str("\n");
 
             serde::de::Error::custom(message)
         })
@@ -272,6 +272,38 @@ mod tests {
         assert_eq!(Some(1u32), data_u32);
         assert_eq!(Some(2u64), data_u64);
         assert_eq!(Some(A(3)), data_a);
+    }
+
+    #[test]
+    fn deserialize_has_good_error_message() {
+        let mut type_reg = TypeReg::new();
+        type_reg.register::<u32>();
+        type_reg.register::<A>();
+
+        let deserializer = serde_yaml::Deserializer::from_str("u64: 2");
+        if let Err(error) = type_reg.deserialize_single(deserializer) {
+            assert_eq!(
+                r#"Type `"u64"` not registered in type registry.
+Available types are:
+
+- "u32"
+- "type_reg::tagged::type_reg::tests::A"
+
+ at line 1 column 4"#,
+                format!("{error}")
+            );
+        } else {
+            panic!("Expected `deserialize_single` to return error.");
+        }
+    }
+
+    #[test]
+    fn with_capacity() {
+        let type_reg = TypeReg::default();
+        assert_eq!(0, type_reg.0.capacity());
+
+        let type_reg = TypeReg::with_capacity(5);
+        assert!(type_reg.0.capacity() >= 5);
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
