@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/type_reg.svg)](https://crates.io/crates/type_reg)
 [![docs.rs](https://img.shields.io/docsrs/type_reg)](https://docs.rs/type_reg)
 [![CI](https://github.com/azriel91/type_reg/workflows/CI/badge.svg)](https://github.com/azriel91/type_reg/actions/workflows/ci.yml)
-<!-- [![Coverage Status](https://codecov.io/gh/azriel91/type_reg/branch/main/graph/badge.svg)](https://codecov.io/gh/azriel91/type_reg) -->
+[![Coverage Status](https://codecov.io/gh/azriel91/type_reg/branch/main/graph/badge.svg)](https://codecov.io/gh/azriel91/type_reg)
 
 Serializable map of any type.
 
