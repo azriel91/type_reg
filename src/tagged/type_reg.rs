@@ -300,10 +300,10 @@ Available types are:
     #[test]
     fn with_capacity() {
         let type_reg = TypeReg::default();
-        assert_eq!(0, type_reg.0.capacity());
+        assert_eq!(0, type_reg.capacity());
 
         let type_reg = TypeReg::with_capacity(5);
-        assert!(type_reg.0.capacity() >= 5);
+        assert!(type_reg.capacity() >= 5);
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]

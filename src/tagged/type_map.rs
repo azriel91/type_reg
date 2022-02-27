@@ -355,6 +355,29 @@ three:
         );
     }
 
+    #[test]
+    fn get_mut() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        let one = type_map.get_mut::<A, _>("one").copied();
+        let two = type_map.get_mut::<A, _>("two").copied();
+        let three = type_map.get_mut::<u32, _>("one").copied();
+
+        assert_eq!(Some(A(1)), one);
+        assert_eq!(None, two);
+        assert_eq!(None, three);
+    }
+
+    #[test]
+    fn with_capacity() {
+        let type_map = TypeMap::<&str>::default();
+        assert_eq!(0, type_map.capacity());
+
+        let type_map = TypeMap::<&str>::with_capacity(5);
+        assert!(type_map.capacity() >= 5);
+    }
+
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
     struct A(u32);
 }
