@@ -274,6 +274,7 @@ mod tests {
         assert_eq!(Some(A(3)), data_a);
     }
 
+    #[cfg(feature = "ordered")]
     #[test]
     fn deserialize_has_good_error_message() {
         let mut type_reg = TypeReg::new();
