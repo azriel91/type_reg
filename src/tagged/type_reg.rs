@@ -1,6 +1,5 @@
 use std::{
     borrow::Cow,
-    collections::HashMap,
     fmt,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -11,8 +10,14 @@ use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
 use crate::tagged::{DataType, TypeMap, TypeMapVisitor};
 
+#[cfg(not(feature = "ordered"))]
+use std::collections::HashMap as Map;
+
+#[cfg(feature = "ordered")]
+use indexmap::IndexMap as Map;
+
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<'key>(HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
+pub struct TypeReg<'key>(Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
 
 impl<'key> TypeReg<'key> {
     // Creates an empty `TypeReg`.
@@ -27,7 +32,7 @@ impl<'key> TypeReg<'key> {
     /// let mut type_reg = TypeReg::new();
     /// ```
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self(Map::new())
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -42,7 +47,7 @@ impl<'key> TypeReg<'key> {
     /// let type_reg = TypeReg::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(HashMap::with_capacity(capacity))
+        Self(Map::with_capacity(capacity))
     }
 
     /// Registers a type in this type registry.
@@ -162,12 +167,12 @@ impl<'key> TypeReg<'key> {
 
 impl<'key> Default for TypeReg<'key> {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(Map::default())
     }
 }
 
 impl<'key> Deref for TypeReg<'key> {
-    type Target = HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
+    type Target = Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

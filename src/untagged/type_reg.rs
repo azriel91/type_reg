@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fmt,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -9,8 +8,14 @@ use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
 use crate::untagged::{DataType, TypeMap, TypeMapVisitor};
 
+#[cfg(not(feature = "ordered"))]
+use std::collections::HashMap as Map;
+
+#[cfg(feature = "ordered")]
+use indexmap::IndexMap as Map;
+
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<K>(HashMap<K, BoxFnSeed<Box<dyn DataType>>>)
+pub struct TypeReg<K>(Map<K, BoxFnSeed<Box<dyn DataType>>>)
 where
     K: Eq + Hash + fmt::Debug;
 
@@ -30,7 +35,7 @@ where
     /// let mut type_reg = TypeReg::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self(Map::new())
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -45,7 +50,7 @@ where
     /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(HashMap::with_capacity(capacity))
+        Self(Map::with_capacity(capacity))
     }
 
     /// Registers a type in this type registry.
@@ -190,7 +195,7 @@ where
     K: Eq + Hash + fmt::Debug,
 {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(Map::default())
     }
 }
 
@@ -198,7 +203,7 @@ impl<K> Deref for TypeReg<K>
 where
     K: Eq + Hash + fmt::Debug,
 {
-    type Target = HashMap<K, BoxFnSeed<Box<dyn DataType>>>;
+    type Target = Map<K, BoxFnSeed<Box<dyn DataType>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

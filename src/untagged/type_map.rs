@@ -1,6 +1,5 @@
 use std::{
     borrow::Borrow,
-    collections::HashMap,
     fmt,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -8,9 +7,15 @@ use std::{
 
 use crate::{untagged::DataType, TypeNameLit};
 
+#[cfg(not(feature = "ordered"))]
+use std::collections::HashMap as Map;
+
+#[cfg(feature = "ordered")]
+use indexmap::IndexMap as Map;
+
 /// Map of types that can be serialized / deserialized.
 #[derive(serde::Serialize)]
-pub struct TypeMap<K>(HashMap<K, Box<dyn DataType>>)
+pub struct TypeMap<K>(Map<K, Box<dyn DataType>>)
 where
     K: Eq + Hash;
 
@@ -30,7 +35,7 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self(Map::new())
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -45,7 +50,7 @@ where
     /// let type_map = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(HashMap::with_capacity(capacity))
+        Self(Map::with_capacity(capacity))
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -212,7 +217,7 @@ where
     K: Eq + Hash,
 {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(Map::default())
     }
 }
 
@@ -220,7 +225,7 @@ impl<K> Deref for TypeMap<K>
 where
     K: Eq + Hash,
 {
-    type Target = HashMap<K, Box<dyn DataType>>;
+    type Target = Map<K, Box<dyn DataType>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
