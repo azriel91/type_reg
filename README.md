@@ -14,13 +14,20 @@ This library provides a map that can store any serializable type, and retrieve i
 Add the following to `Cargo.toml`
 
 ```toml
-# any combination of
 type_reg = { version = "0.1.0", features = ["tagged"] }
 type_reg = { version = "0.1.0", features = ["untagged"] }
+
+# Values must impl Debug, and TypeMap's Debug impl will
+# print the debug string of each value.
 type_reg = { version = "0.1.0", features = ["debug"] }
+
+# Use insertion order for TypeMap and TypeReg iteration order.
+type_reg = { version = "0.1.0", features = ["ordered"] }
 ```
 
 ### Tagged Type Registry
+
+⚠️ **Note:** This uses [`std::any::type_name`] internally, which is not stable.
 
 #### Serialization
 
@@ -158,3 +165,4 @@ Unless you explicitly state otherwise, any contribution intentionally submitted 
 
 [LICENSE-APACHE]: LICENSE-APACHE
 [LICENSE-MIT]: LICENSE-MIT
+[`std::any::type_name`]: https://doc.rust-lang.org/std/any/fn.type_name.html

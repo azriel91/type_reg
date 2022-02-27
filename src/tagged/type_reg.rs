@@ -1,6 +1,5 @@
 use std::{
     borrow::Cow,
-    collections::HashMap,
     fmt,
     hash::Hash,
     ops::{Deref, DerefMut},
@@ -11,8 +10,14 @@ use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
 use crate::tagged::{DataType, TypeMap, TypeMapVisitor};
 
+#[cfg(not(feature = "ordered"))]
+use std::collections::HashMap as Map;
+
+#[cfg(feature = "ordered")]
+use indexmap::IndexMap as Map;
+
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<'key>(HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
+pub struct TypeReg<'key>(Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
 
 impl<'key> TypeReg<'key> {
     // Creates an empty `TypeReg`.
@@ -27,7 +32,7 @@ impl<'key> TypeReg<'key> {
     /// let mut type_reg = TypeReg::new();
     /// ```
     pub fn new() -> Self {
-        Self(HashMap::new())
+        Self(Map::new())
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -42,7 +47,7 @@ impl<'key> TypeReg<'key> {
     /// let type_reg = TypeReg::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(HashMap::with_capacity(capacity))
+        Self(Map::with_capacity(capacity))
     }
 
     /// Registers a type in this type registry.
@@ -162,12 +167,12 @@ impl<'key> TypeReg<'key> {
 
 impl<'key> Default for TypeReg<'key> {
     fn default() -> Self {
-        Self(HashMap::default())
+        Self(Map::default())
     }
 }
 
 impl<'key> Deref for TypeReg<'key> {
-    type Target = HashMap<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
+    type Target = Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -225,4 +230,50 @@ impl<'key: 'de, 'de: 'r, 'r> DeserializeSeed<'de> for &'r TypeReg<'key> {
     {
         serde_tagged::de::external::deserialize(deserializer, self)
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tagged::{TypeMap, TypeReg};
+    use serde::{Deserialize, Serialize};
+
+    #[test]
+    fn deserialize_single() {
+        let mut type_reg = TypeReg::new();
+        type_reg.register::<u32>();
+
+        let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+        let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
+        let data_u32 = data_u32.downcast_ref::<u32>().copied();
+
+        assert_eq!(Some(1), data_u32);
+    }
+
+    #[test]
+    fn deserialize_map() {
+        let mut type_reg = TypeReg::new();
+        type_reg.register::<u32>();
+        type_reg.register::<u64>();
+        type_reg.register::<A>();
+
+        let serialized = "---\n\
+            one:   { u32: 1 }\n\
+            two:   { u64: 2 }\n\
+            three: { 'type_reg::tagged::type_reg::tests::A': 3 }\n\
+            ";
+
+        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
+
+        let data_u32 = type_map.get::<u32, _>("one").copied();
+        let data_u64 = type_map.get::<u64, _>("two").copied();
+        let data_a = type_map.get::<A, _>("three").copied();
+
+        assert_eq!(Some(1u32), data_u32);
+        assert_eq!(Some(2u64), data_u64);
+        assert_eq!(Some(A(3)), data_a);
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
+    struct A(u32);
 }

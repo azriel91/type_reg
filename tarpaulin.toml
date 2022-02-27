@@ -2,7 +2,7 @@
 features = "tagged untagged"
 
 [debug]
-features = "tagged untagged debug"
+features = "tagged untagged ordered debug"
 
 [report]
 out = ["Html", "Xml"]
