@@ -16,7 +16,7 @@ all-features = true
 [dependencies]
 downcast-rs = "1.2.0"
 erased-serde = "0.3.18"
-serde = { version = "1.0.133", features = ["derive"] }
+serde = { version = "1.0.136", features = ["derive"] }
 serde_tagged = "0.2.0"
 
 [dev-dependencies]
