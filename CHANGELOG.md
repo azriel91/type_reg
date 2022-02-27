@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0 (2022-02-27)
+
+* Implement `Clone` for `TypeMap`.
+
 ## 0.2.0 (2022-02-27)
 
 * Add `"ordered"` feature to iterate and serialize in insertion order.
