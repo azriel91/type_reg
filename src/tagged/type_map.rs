@@ -77,7 +77,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: serde::Serialize + Send + Sync + 'static,
+        R: Clone + serde::Serialize + Send + Sync + 'static,
     {
         self.0.get(q).and_then(|n| n.downcast_ref::<R>())
     }
@@ -106,7 +106,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.0.get(q).and_then(|n| n.downcast_ref::<R>())
     }
@@ -136,7 +136,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: serde::Serialize + Send + Sync + 'static,
+        R: Clone + serde::Serialize + Send + Sync + 'static,
     {
         self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
     }
@@ -165,7 +165,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
     }
@@ -180,7 +180,7 @@ where
     #[cfg(not(feature = "debug"))]
     pub fn insert<R>(&mut self, k: K, r: R) -> Option<Box<dyn DataType>>
     where
-        R: serde::Serialize + Send + Sync + 'static,
+        R: Clone + serde::Serialize + Send + Sync + 'static,
     {
         self.0.insert(k, Box::new(r))
     }
@@ -195,7 +195,7 @@ where
     #[cfg(feature = "debug")]
     pub fn insert<R>(&mut self, k: K, r: R) -> Option<Box<dyn DataType>>
     where
-        R: fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.0.insert(k, Box::new(r))
     }
@@ -209,6 +209,20 @@ where
     /// types that can be `==` without being identical.
     pub fn insert_raw(&mut self, k: K, v: Box<dyn DataType>) -> Option<Box<dyn DataType>> {
         self.0.insert(k, v)
+    }
+}
+
+impl<K> Clone for TypeMap<K>
+where
+    K: Clone + Eq + Hash,
+{
+    fn clone(&self) -> Self {
+        let mut type_map = TypeMap::<K>::with_capacity(self.0.len());
+        self.0.iter().for_each(|(k, v)| {
+            let value = dyn_clone::clone_box(&*v);
+            type_map.insert_raw(k.clone(), value);
+        });
+        type_map
     }
 }
 
@@ -305,6 +319,30 @@ three:
         assert_eq!(expected, serialized);
     }
 
+    #[test]
+    fn clone() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        let mut type_map_clone = type_map.clone();
+        type_map_clone.insert("one", A(2));
+
+        assert_eq!(Some(A(1)), type_map.get("one").copied());
+        assert_eq!(Some(A(2)), type_map_clone.get("one").copied());
+    }
+
+    #[cfg(not(feature = "debug"))]
+    #[test]
+    fn debug() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        assert_eq!(
+            r#"{"one": TypedValue { type: "type_reg::tagged::type_map::tests::A", value: ".." }}"#,
+            format!("{type_map:?}")
+        );
+    }
+
     #[cfg(feature = "debug")]
     #[test]
     fn debug() {
@@ -315,6 +353,29 @@ three:
             r#"{"one": TypedValue { type: "type_reg::tagged::type_map::tests::A", value: A(1) }}"#,
             format!("{type_map:?}")
         );
+    }
+
+    #[test]
+    fn get_mut() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        let one = type_map.get_mut::<A, _>("one").copied();
+        let two = type_map.get_mut::<A, _>("two").copied();
+        let three = type_map.get_mut::<u32, _>("one").copied();
+
+        assert_eq!(Some(A(1)), one);
+        assert_eq!(None, two);
+        assert_eq!(None, three);
+    }
+
+    #[test]
+    fn with_capacity() {
+        let type_map = TypeMap::<&str>::default();
+        assert_eq!(0, type_map.capacity());
+
+        let type_map = TypeMap::<&str>::with_capacity(5);
+        assert!(type_map.capacity() >= 5);
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]

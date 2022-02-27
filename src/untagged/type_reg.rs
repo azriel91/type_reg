@@ -160,30 +160,30 @@ where
 
     pub(crate) fn deserialize_seed<E>(
         &self,
-        type_tag: &K,
+        type_key: &K,
     ) -> Result<&BoxFnSeed<Box<dyn DataType>>, E>
     where
         E: serde::de::Error,
     {
-        self.0.get(type_tag).ok_or_else(|| {
+        self.0.get(type_key).ok_or_else(|| {
             use std::fmt::Write;
             let mut message = String::with_capacity(256);
             write!(
                 message,
-                "Type `{type_tag:?}` not registered in type registry."
+                "Type key `{type_key:?}` not registered in type registry."
             )
             .expect("Failed to write error message");
 
-            message.push_str("\nAvailable types are: [");
+            message.push_str("\nAvailable types are:\n\n");
             let mut message = self
                 .0
                 .keys()
                 .try_fold(message, |mut message, key| {
-                    write!(message, "{key:?},")?;
+                    writeln!(message, "- {key:?}")?;
                     Result::<_, fmt::Error>::Ok(message)
                 })
                 .expect("Failed to write error message");
-            message.push_str("]");
+            message.push_str("\n");
 
             serde::de::Error::custom(message)
         })
@@ -275,6 +275,38 @@ mod tests {
         assert_eq!(Some(1u32), data_u32);
         assert_eq!(Some(2u64), data_u64);
         assert_eq!(Some(A(3)), data_a);
+    }
+
+    #[test]
+    fn deserialize_has_good_error_message() {
+        let mut type_reg = TypeReg::<String>::new();
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<A>(String::from("three"));
+
+        let deserializer = serde_yaml::Deserializer::from_str("two: 2");
+        if let Err(error) = type_reg.deserialize_single(deserializer) {
+            assert_eq!(
+                r#"Type key `"two"` not registered in type registry.
+Available types are:
+
+- "one"
+- "three"
+
+ at line 1 column 4"#,
+                format!("{error}")
+            );
+        } else {
+            panic!("Expected `deserialize_single` to return error.");
+        }
+    }
+
+    #[test]
+    fn with_capacity() {
+        let type_reg = TypeReg::<String>::default();
+        assert_eq!(0, type_reg.capacity());
+
+        let type_reg = TypeReg::<String>::with_capacity(5);
+        assert!(type_reg.capacity() >= 5);
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
