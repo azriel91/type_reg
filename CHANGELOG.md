@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 0.3.1 (2022-09-03)
 
 * Implement `Debug` for `TypeReg`.
 

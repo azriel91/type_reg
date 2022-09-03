@@ -1,6 +1,6 @@
 [package]
 name = "type_reg"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Azriel Hoh <azriel91@gmail.com>"]
 edition = "2021"
 description = "Serializable map of any type."
