@@ -310,7 +310,7 @@ Available types are:
 - "one"
 - "three"
 
- at line 1 column 4"#,
+"#,
                 format!("{error}")
             );
         } else {

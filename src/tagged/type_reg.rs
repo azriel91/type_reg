@@ -304,7 +304,7 @@ Available types are:
 - "u32"
 - "type_reg::tagged::type_reg::tests::A"
 
- at line 1 column 4"#,
+"#,
                 format!("{error}")
             );
         } else {
