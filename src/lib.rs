@@ -158,3 +158,12 @@ pub mod untagged;
 pub use crate::type_name_lit::TypeNameLit;
 
 mod type_name_lit;
+
+// This is used in `Debug` impls, but for some reason rustc warns the fields
+// are not used.
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(crate) struct TypedValue<'a> {
+    r#type: TypeNameLit,
+    value: &'a dyn std::fmt::Debug,
+}

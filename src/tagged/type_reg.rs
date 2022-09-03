@@ -171,6 +171,20 @@ impl<'key> Default for TypeReg<'key> {
     }
 }
 
+impl<'key> fmt::Debug for TypeReg<'key> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut debug_map = f.debug_map();
+
+        // BoxFnSeed is `!Debug`, so we just use "..".
+        self.0.keys().for_each(|k| {
+            debug_map.key(&k);
+            debug_map.value(&"..");
+        });
+
+        debug_map.finish()
+    }
+}
+
 impl<'key> Deref for TypeReg<'key> {
     type Target = Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
 
@@ -305,6 +319,17 @@ Available types are:
 
         let type_reg = TypeReg::with_capacity(5);
         assert!(type_reg.capacity() >= 5);
+    }
+
+    #[test]
+    fn debug() {
+        let mut type_reg = TypeReg::new();
+        type_reg.register::<A>();
+
+        assert_eq!(
+            r#"{"type_reg::tagged::type_reg::tests::A": ".."}"#,
+            format!("{type_reg:?}")
+        );
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]

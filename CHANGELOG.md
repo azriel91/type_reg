@@ -1,5 +1,9 @@
 # Changelog
 
+## unreleased
+
+* Implement `Debug` for `TypeReg`.
+
 ## 0.3.0 (2022-02-27)
 
 * Implement `Clone` for `TypeMap`.

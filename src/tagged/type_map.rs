@@ -5,7 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::{tagged::DataType, TypeNameLit};
+use crate::tagged::DataType;
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -255,15 +255,6 @@ where
     }
 }
 
-// This is used in the Debug impl, but for some reason rustc warns the fields
-// are not used.
-#[allow(dead_code)]
-#[derive(Debug)]
-struct TypedValue<'a> {
-    r#type: TypeNameLit,
-    value: &'a dyn fmt::Debug,
-}
-
 impl<K> fmt::Debug for TypeMap<K>
 where
     K: Eq + Hash + fmt::Debug,
@@ -280,7 +271,7 @@ where
             let value = &resource;
 
             let type_name = resource.as_ref().type_name();
-            let debug_value = TypedValue {
+            let debug_value = crate::TypedValue {
                 r#type: type_name,
                 value,
             };

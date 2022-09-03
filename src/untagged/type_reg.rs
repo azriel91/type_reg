@@ -199,6 +199,23 @@ where
     }
 }
 
+impl<K> fmt::Debug for TypeReg<K>
+where
+    K: Eq + Hash + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut debug_map = f.debug_map();
+
+        // BoxFnSeed is `!Debug`, so we just use "..".
+        self.0.keys().for_each(|k| {
+            debug_map.key(&k);
+            debug_map.value(&"..");
+        });
+
+        debug_map.finish()
+    }
+}
+
 impl<K> Deref for TypeReg<K>
 where
     K: Eq + Hash + fmt::Debug,
@@ -308,6 +325,14 @@ Available types are:
 
         let type_reg = TypeReg::<String>::with_capacity(5);
         assert!(type_reg.capacity() >= 5);
+    }
+
+    #[test]
+    fn debug() {
+        let mut type_reg = TypeReg::new();
+        type_reg.register::<A>("one");
+
+        assert_eq!(r#"{"one": ".."}"#, format!("{type_reg:?}"));
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
