@@ -217,7 +217,7 @@ where
                     Result::<_, fmt::Error>::Ok(message)
                 })
                 .expect("Failed to write error message");
-            message.push_str("\n");
+            message.push('\n');
 
             serde::de::Error::custom(message)
         })
