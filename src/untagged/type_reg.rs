@@ -6,7 +6,7 @@ use std::{
 
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::untagged::{DataType, TypeMap, TypeMapVisitor};
+use crate::untagged::{BoxDt, DataType, DataTypeWrapper, TypeMap, TypeMapVisitor};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -15,11 +15,11 @@ use std::collections::HashMap as Map;
 use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<K>(Map<K, BoxFnSeed<Box<dyn DataType>>>)
+pub struct TypeReg<K, BoxDT = BoxDt>(Map<K, BoxFnSeed<BoxDT>>)
 where
     K: Eq + Hash + fmt::Debug;
 
-impl<K> TypeReg<K>
+impl<K> TypeReg<K, BoxDt>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -52,6 +52,42 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         Self(Map::with_capacity(capacity))
     }
+}
+
+impl<K, BoxDT> TypeReg<K, BoxDT>
+where
+    K: Eq + Hash + fmt::Debug,
+    BoxDT: DataTypeWrapper + 'static,
+{
+    // Creates an empty `TypeReg`.
+    ///
+    /// The map is initially created with a capacity of 0, so it will not
+    /// allocate until it is first inserted into.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::TypeReg;
+    /// let mut type_reg = TypeReg::<&'static str>::new();
+    /// ```
+    pub fn new_typed() -> Self {
+        Self(Map::new())
+    }
+
+    /// Creates an empty `TypeReg` with the specified capacity.
+    ///
+    /// The map will be able to hold at least capacity elements without
+    /// reallocating. If capacity is 0, the map will not allocate.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::TypeReg;
+    /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
+    /// ```
+    pub fn with_capacity_typed(capacity: usize) -> Self {
+        Self(Map::with_capacity(capacity))
+    }
 
     /// Registers a type in this type registry.
     ///
@@ -78,16 +114,17 @@ where
     where
         R: serde::de::DeserializeOwned + DataType + 'static,
     {
-        fn deserialize<'de, R>(
-            deserializer: &mut dyn erased_serde::Deserializer<'de>,
-        ) -> Result<Box<dyn DataType>, erased_serde::Error>
+        fn deserialize<BoxDTInner, R>(
+            deserializer: &mut dyn erased_serde::Deserializer<'_>,
+        ) -> Result<BoxDTInner, erased_serde::Error>
         where
             R: serde::de::DeserializeOwned + DataType + 'static,
+            BoxDTInner: DataTypeWrapper,
         {
-            Ok(Box::new(R::deserialize(deserializer)?))
+            Ok(BoxDTInner::new(R::deserialize(deserializer)?))
         }
 
-        self.0.insert(key, BoxFnSeed::new(deserialize::<R>));
+        self.0.insert(key, BoxFnSeed::new(deserialize::<BoxDT, R>));
     }
 
     /// Deserializes a map of arbitrary values into a [`TypeMap`].
@@ -118,7 +155,7 @@ where
     ///
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     /// ```
-    pub fn deserialize_map<'de, D, E>(&'de self, deserializer: D) -> Result<TypeMap<K>, E>
+    pub fn deserialize_map<'de, D, E>(&'de self, deserializer: D) -> Result<TypeMap<K, BoxDT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,
@@ -149,7 +186,7 @@ where
     ///
     /// println!("{data_u32:?}"); // prints "1"
     /// ```
-    pub fn deserialize_single<'de, D, E>(&self, deserializer: D) -> Result<Box<dyn DataType>, E>
+    pub fn deserialize_single<'de, D, E>(&self, deserializer: D) -> Result<BoxDT, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,
@@ -158,10 +195,7 @@ where
         serde_tagged::de::external::deserialize(deserializer, self)
     }
 
-    pub(crate) fn deserialize_seed<E>(
-        &self,
-        type_key: &K,
-    ) -> Result<&BoxFnSeed<Box<dyn DataType>>, E>
+    pub(crate) fn deserialize_seed<E>(&self, type_key: &K) -> Result<&BoxFnSeed<BoxDT>, E>
     where
         E: serde::de::Error,
     {
@@ -190,7 +224,7 @@ where
     }
 }
 
-impl<K> Default for TypeReg<K>
+impl<K, BoxDT> Default for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -199,7 +233,7 @@ where
     }
 }
 
-impl<K> fmt::Debug for TypeReg<K>
+impl<K, BoxDT> fmt::Debug for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -216,18 +250,18 @@ where
     }
 }
 
-impl<K> Deref for TypeReg<K>
+impl<K, BoxDT> Deref for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
-    type Target = Map<K, BoxFnSeed<Box<dyn DataType>>>;
+    type Target = Map<K, BoxFnSeed<BoxDT>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<K> DerefMut for TypeReg<K>
+impl<K, BoxDT> DerefMut for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -237,12 +271,13 @@ where
 }
 
 // Used by [`serde_tagged`] to select which [`DeserializeSeed`] function to use.
-impl<'r, 'de, K> SeedFactory<'de, K> for &'r TypeReg<K>
+impl<'r, 'de, K, BoxDT> SeedFactory<'de, K> for &'r TypeReg<K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug + 'de,
+    BoxDT: DataTypeWrapper + 'static,
 {
-    type Seed = &'r BoxFnSeed<Box<dyn DataType>>;
-    type Value = Box<dyn DataType>;
+    type Seed = &'r BoxFnSeed<BoxDT>;
+    type Value = BoxDT;
 
     fn seed<E>(self, type_tag: K) -> Result<Self::Seed, E>
     where
@@ -254,7 +289,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::untagged::{TypeMap, TypeReg};
+    use crate::untagged::{data_type_wrapper::DataTypeWrapper, TypeMap, TypeReg};
     use serde::{Deserialize, Serialize};
 
     #[test]
@@ -264,7 +299,7 @@ mod tests {
 
         let deserializer = serde_yaml::Deserializer::from_str("one: 1");
         let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
-        let data_u32 = data_u32.downcast_ref::<u32>().copied();
+        let data_u32 = data_u32.inner().downcast_ref::<u32>().copied();
 
         assert_eq!(Some(1), data_u32);
     }

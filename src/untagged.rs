@@ -45,10 +45,16 @@
 //! ```
 
 pub use self::{
-    data_type::DataType, type_map::TypeMap, type_map_visitor::TypeMapVisitor, type_reg::TypeReg,
+    box_dt::BoxDt, box_dt_display::BoxDtDisplay, data_type::DataType,
+    data_type_display::DataTypeDisplay, data_type_wrapper::DataTypeWrapper, type_map::TypeMap,
+    type_map_visitor::TypeMapVisitor, type_reg::TypeReg,
 };
 
+mod box_dt;
+mod box_dt_display;
 mod data_type;
+mod data_type_display;
+mod data_type_wrapper;
 mod type_map;
 mod type_map_visitor;
 mod type_reg;
