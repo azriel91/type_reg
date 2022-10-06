@@ -115,7 +115,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get(q).and_then(|n| n.inner().downcast_ref::<R>())
+        self.0.get(q).and_then(DataTypeWrapper::downcast_ref::<R>)
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -144,7 +144,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get(q).and_then(|n| n.inner().downcast_ref::<R>())
+        self.0.get(q).and_then(DataTypeWrapper::downcast_ref::<R>)
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
@@ -176,7 +176,7 @@ where
     {
         self.0
             .get_mut(q)
-            .and_then(|n| n.inner_mut().downcast_mut::<R>())
+            .and_then(DataTypeWrapper::downcast_mut::<R>)
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
@@ -207,7 +207,7 @@ where
     {
         self.0
             .get_mut(q)
-            .and_then(|n| n.inner_mut().downcast_mut::<R>())
+            .and_then(DataTypeWrapper::downcast_mut::<R>)
     }
 
     /// Inserts a key-value pair into the map.
@@ -310,7 +310,7 @@ where
             let value = &"..";
 
             #[cfg(feature = "debug")]
-            let value = resource.inner();
+            let value = resource.debug();
 
             let type_name = resource.type_name();
             let debug_value = crate::TypedValue {

@@ -299,7 +299,7 @@ mod tests {
 
         let deserializer = serde_yaml::Deserializer::from_str("one: 1");
         let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
-        let data_u32 = data_u32.inner().downcast_ref::<u32>().copied();
+        let data_u32 = data_u32.downcast_ref::<u32>().copied();
 
         assert_eq!(Some(1), data_u32);
     }

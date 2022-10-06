@@ -26,13 +26,19 @@ pub trait DataTypeWrapper:
 
     fn type_name(&self) -> TypeNameLit;
 
-    // Needed for `downcast_ref` in `TypeMap` to cast to the correct type.
-    #[allow(clippy::borrowed_box)]
-    fn inner(&self) -> &Box<dyn DataType>;
+    fn downcast_ref<R>(&self) -> Option<&R>
+    where
+        R: Clone + serde::Serialize + Send + Sync + 'static,
+        Self: Sized;
 
-    // Needed for `downcast_mut` in `TypeMap` to cast to the correct type.
-    #[allow(clippy::borrowed_box)]
-    fn inner_mut(&mut self) -> &mut Box<dyn DataType>;
+    fn downcast_mut<R>(&mut self) -> Option<&mut R>
+    where
+        R: Clone + serde::Serialize + Send + Sync + 'static,
+        Self: Sized;
+
+    fn inner(&self) -> &dyn DataType;
+
+    fn inner_mut(&mut self) -> &mut dyn DataType;
 }
 
 #[cfg(not(feature = "debug"))]
@@ -52,11 +58,25 @@ impl DataTypeWrapper for BoxDt {
         DataType::type_name(&*self.0)
     }
 
-    fn inner(&self) -> &Box<dyn DataType> {
+    fn downcast_ref<R>(&self) -> Option<&R>
+    where
+        R: Clone + serde::Serialize + Send + Sync + 'static,
+    {
+        <dyn Any>::downcast_ref::<R>(&self.0)
+    }
+
+    fn downcast_mut<R>(&mut self) -> Option<&mut R>
+    where
+        R: Clone + serde::Serialize + Send + Sync + 'static,
+    {
+        <dyn Any>::downcast_mut::<R>(&mut self.0)
+    }
+
+    fn inner(&self) -> &dyn DataType {
         &self.0
     }
 
-    fn inner_mut(&mut self) -> &mut Box<dyn DataType> {
+    fn inner_mut(&mut self) -> &mut dyn DataType {
         &mut self.0
     }
 }
@@ -77,13 +97,21 @@ pub trait DataTypeWrapper:
 
     fn type_name(&self) -> TypeNameLit;
 
-    // Needed for `downcast_ref` in `TypeMap` to cast to the correct type.
-    #[allow(clippy::borrowed_box)]
-    fn inner(&self) -> &Box<dyn DataType>;
+    fn downcast_ref<R>(&self) -> Option<&R>
+    where
+        R: Clone + std::fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        Self: Sized;
 
-    // Needed for `downcast_mut` in `TypeMap` to cast to the correct type.
-    #[allow(clippy::borrowed_box)]
-    fn inner_mut(&mut self) -> &mut Box<dyn DataType>;
+    fn downcast_mut<R>(&mut self) -> Option<&mut R>
+    where
+        R: Clone + std::fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        Self: Sized;
+
+    fn debug(&self) -> &dyn std::fmt::Debug;
+
+    fn inner(&self) -> &dyn DataType;
+
+    fn inner_mut(&mut self) -> &mut dyn DataType;
 }
 
 #[cfg(feature = "debug")]
@@ -104,11 +132,29 @@ impl DataTypeWrapper for BoxDt {
         DataType::type_name(&*self.0)
     }
 
-    fn inner(&self) -> &Box<dyn DataType> {
+    fn downcast_ref<R>(&self) -> Option<&R>
+    where
+        R: Clone + std::fmt::Debug + serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.downcast_ref::<R>()
+    }
+
+    fn downcast_mut<R>(&mut self) -> Option<&mut R>
+    where
+        R: Clone + std::fmt::Debug + serde::Serialize + Send + Sync + 'static,
+    {
+        self.0.downcast_mut::<R>()
+    }
+
+    fn debug(&self) -> &dyn std::fmt::Debug {
         &self.0
     }
 
-    fn inner_mut(&mut self) -> &mut Box<dyn DataType> {
+    fn inner(&self) -> &dyn DataType {
+        &self.0
+    }
+
+    fn inner_mut(&mut self) -> &mut dyn DataType {
         &mut self.0
     }
 }
