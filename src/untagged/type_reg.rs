@@ -6,7 +6,7 @@ use std::{
 
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::untagged::{BoxDt, DataType, DataTypeWrapper, TypeMap, TypeMapVisitor};
+use crate::untagged::{BoxDt, DataType, DataTypeWrapper, IntoBoxDataType, TypeMap, TypeMapVisitor};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -112,16 +112,18 @@ where
     /// ```
     pub fn register<R>(&mut self, key: K)
     where
-        R: serde::de::DeserializeOwned + DataType + 'static,
+        R: serde::de::DeserializeOwned + DataType + IntoBoxDataType<BoxDT> + 'static,
     {
         fn deserialize<BoxDTInner, R>(
             deserializer: &mut dyn erased_serde::Deserializer<'_>,
         ) -> Result<BoxDTInner, erased_serde::Error>
         where
-            R: serde::de::DeserializeOwned + DataType + 'static,
+            R: serde::de::DeserializeOwned + DataType + IntoBoxDataType<BoxDTInner> + 'static,
             BoxDTInner: DataTypeWrapper,
         {
-            Ok(BoxDTInner::new(R::deserialize(deserializer)?))
+            Ok(IntoBoxDataType::<BoxDTInner>::into(R::deserialize(
+                deserializer,
+            )?))
         }
 
         self.0.insert(key, BoxFnSeed::new(deserialize::<BoxDT, R>));
@@ -289,7 +291,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::untagged::{data_type_wrapper::DataTypeWrapper, TypeMap, TypeReg};
+    use crate::untagged::{BoxDataTypeDowncast, TypeMap, TypeReg};
     use serde::{Deserialize, Serialize};
 
     #[test]
@@ -299,7 +301,7 @@ mod tests {
 
         let deserializer = serde_yaml::Deserializer::from_str("one: 1");
         let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
-        let data_u32 = data_u32.downcast_ref::<u32>().copied();
+        let data_u32 = BoxDataTypeDowncast::<u32>::downcast_ref(&data_u32).copied();
 
         assert_eq!(Some(1), data_u32);
     }
