@@ -219,7 +219,7 @@ where
     fn clone(&self) -> Self {
         let mut type_map = TypeMap::<K>::with_capacity(self.0.len());
         self.0.iter().for_each(|(k, v)| {
-            let value = dyn_clone::clone_box(&*v);
+            let value = dyn_clone::clone_box(v);
             type_map.insert_raw(k.clone(), value);
         });
         type_map

@@ -1,6 +1,6 @@
 use std::{fmt, hash::Hash};
 
-use crate::untagged::{TypeMap, TypeReg};
+use crate::untagged::{DataTypeWrapper, TypeMap, TypeReg};
 
 /// A visitor that can be used to deserialize a map of untagged values.
 ///
@@ -14,28 +14,29 @@ use crate::untagged::{TypeMap, TypeReg};
 /// going to be deserialized.
 ///
 /// [`DeserializeSeed`]: serde::de::DeserializeSeed
-pub struct TypeMapVisitor<'r, K>
+pub struct TypeMapVisitor<'r, K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
-    type_reg: &'r TypeReg<K>,
+    type_reg: &'r TypeReg<K, BoxDT>,
 }
 
-impl<'r, K> TypeMapVisitor<'r, K>
+impl<'r, K, BoxDT> TypeMapVisitor<'r, K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug,
 {
     /// Creates a new visitor with the given [`TypeReg`].
-    pub fn new(type_reg: &'r TypeReg<K>) -> Self {
+    pub fn new(type_reg: &'r TypeReg<K, BoxDT>) -> Self {
         TypeMapVisitor { type_reg }
     }
 }
 
-impl<'r: 'de, 'de, K> serde::de::Visitor<'de> for TypeMapVisitor<'r, K>
+impl<'r: 'de, 'de, K, BoxDT> serde::de::Visitor<'de> for TypeMapVisitor<'r, K, BoxDT>
 where
     K: Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de,
+    BoxDT: DataTypeWrapper + 'static,
 {
-    type Value = TypeMap<K>;
+    type Value = TypeMap<K, BoxDT>;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "a map of arbitrary data types")
@@ -46,8 +47,8 @@ where
         A: serde::de::MapAccess<'de>,
     {
         let mut type_map = match map.size_hint() {
-            Some(n) => TypeMap::with_capacity(n),
-            _ => TypeMap::new(),
+            Some(n) => TypeMap::with_capacity_typed(n),
+            _ => TypeMap::new_typed(),
         };
 
         while let Some(key) = map.next_key::<K>()? {

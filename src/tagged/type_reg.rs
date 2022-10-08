@@ -17,6 +17,7 @@ use std::collections::HashMap as Map;
 use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
+#[derive(Default)]
 pub struct TypeReg<'key>(Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
 
 impl<'key> TypeReg<'key> {
@@ -75,8 +76,8 @@ impl<'key> TypeReg<'key> {
     where
         R: serde::de::DeserializeOwned + DataType + 'static,
     {
-        fn deserialize<'de, R>(
-            deserializer: &mut dyn erased_serde::Deserializer<'de>,
+        fn deserialize<R>(
+            deserializer: &mut dyn erased_serde::Deserializer<'_>,
         ) -> Result<Box<dyn DataType>, erased_serde::Error>
         where
             R: serde::de::DeserializeOwned + DataType + 'static,
@@ -165,12 +166,6 @@ impl<'key> TypeReg<'key> {
     }
 }
 
-impl<'key> Default for TypeReg<'key> {
-    fn default() -> Self {
-        Self(Map::default())
-    }
-}
-
 impl<'key> fmt::Debug for TypeReg<'key> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
@@ -226,7 +221,7 @@ impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'ke
                     Result::<_, fmt::Error>::Ok(message)
                 })
                 .expect("Failed to write error message");
-            message.push_str("\n");
+            message.push('\n');
 
             serde::de::Error::custom(message)
         })
