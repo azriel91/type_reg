@@ -10,8 +10,6 @@ pub trait DataTypeWrapper: erased_serde::Serialize {
         Self: Sized;
 
     fn inner(&self) -> &dyn DataType;
-
-    fn inner_mut(&mut self) -> &mut dyn DataType;
 }
 
 /// Trait to represent the stored type.
@@ -26,8 +24,6 @@ pub trait DataTypeWrapper: std::fmt::Debug + erased_serde::Serialize {
     fn debug(&self) -> &dyn std::fmt::Debug;
 
     fn inner(&self) -> &dyn DataType;
-
-    fn inner_mut(&mut self) -> &mut dyn DataType;
 }
 
 impl<'a> serde::Serialize for dyn DataTypeWrapper + 'a {
