@@ -1,6 +1,6 @@
 [package]
 name = "type_reg"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Azriel Hoh <azriel91@gmail.com>"]
 edition = "2021"
 description = "Serializable map of any type."
@@ -15,14 +15,14 @@ all-features = true
 
 [dependencies]
 downcast-rs = "1.2.0"
-dyn-clone = "1.0.4"
-erased-serde = "0.3.18"
-indexmap = { version = "1.8.0", optional = true }
-serde = { version = "1.0.136", features = ["derive"] }
+dyn-clone = "1.0.9"
+erased-serde = "0.3.23"
+indexmap = { version = "1.9.1", optional = true }
+serde = { version = "1.0.145", features = ["derive"] }
 serde_tagged = "0.2.0"
 
 [dev-dependencies]
-serde_yaml = "0.9.11"
+serde_yaml = "0.9.13"
 
 [[example]]
 name = "tagged_serialize"
