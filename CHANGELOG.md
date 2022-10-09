@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 (2022-10-09)
+
+* In `untagged`, genericize `TypeReg` and `TypeMap`, so stored type may have different trait bounds.
+* `TypeMap` defaults to storing `BoxDt`, which has `Clone`, serialization, and optionally `Debug` constraints.
+* `TypeMap` may store `BoxDtDisplay`, which adds the `Display` constraint.
+* ***Breaking:*** Previously, `Box<dyn DataType>` may be downcasted to `T` through `data.downcast_ref::<T>()`. Now, one needs to use `BoxDataTypeDowncast::<T>::downcast_ref(box_dt)`;
+
 ## 0.3.1 (2022-09-03)
 
 * Implement `Debug` for `TypeReg`.
