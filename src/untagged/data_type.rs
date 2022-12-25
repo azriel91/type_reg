@@ -6,12 +6,12 @@ use dyn_clone::DynClone;
 use crate::TypeNameLit;
 
 /// Trait to represent the stored type.
-#[cfg(not(feature = "debug"))]
+#[cfg(all(not(feature = "debug"), not(feature = "resman")))]
 pub trait DataType: DowncastSync + DynClone + erased_serde::Serialize {
     fn type_name(&self) -> TypeNameLit;
 }
 
-#[cfg(not(feature = "debug"))]
+#[cfg(all(not(feature = "debug"), not(feature = "resman")))]
 impl<T> DataType for T
 where
     T: Any + DynClone + erased_serde::Serialize + Send + Sync,
@@ -22,18 +22,62 @@ where
 }
 
 /// Trait to represent the stored type.
-#[cfg(feature = "debug")]
+#[cfg(all(not(feature = "debug"), feature = "resman"))]
+pub trait DataType: resman::Resource + DowncastSync + DynClone + erased_serde::Serialize {
+    fn type_name(&self) -> TypeNameLit;
+    fn upcast(self: Box<Self>) -> Box<dyn resman::Resource>;
+}
+
+#[cfg(all(not(feature = "debug"), feature = "resman"))]
+impl<T> DataType for T
+where
+    T: Any + DynClone + erased_serde::Serialize + Send + Sync,
+{
+    fn type_name(&self) -> TypeNameLit {
+        TypeNameLit(std::any::type_name::<T>())
+    }
+
+    fn upcast(self: Box<Self>) -> Box<dyn resman::Resource> {
+        self
+    }
+}
+
+/// Trait to represent the stored type.
+#[cfg(all(feature = "debug", not(feature = "resman")))]
 pub trait DataType: DowncastSync + DynClone + std::fmt::Debug + erased_serde::Serialize {
     fn type_name(&self) -> TypeNameLit;
 }
 
-#[cfg(feature = "debug")]
+#[cfg(all(feature = "debug", not(feature = "resman")))]
 impl<T> DataType for T
 where
     T: Any + DynClone + std::fmt::Debug + erased_serde::Serialize + Send + Sync,
 {
     fn type_name(&self) -> TypeNameLit {
         TypeNameLit(std::any::type_name::<T>())
+    }
+}
+
+/// Trait to represent the stored type.
+#[cfg(all(feature = "debug", feature = "resman"))]
+pub trait DataType:
+    resman::Resource + DowncastSync + DynClone + std::fmt::Debug + erased_serde::Serialize
+{
+    fn type_name(&self) -> TypeNameLit;
+    fn upcast(self: Box<Self>) -> Box<dyn resman::Resource>;
+}
+
+#[cfg(all(feature = "debug", feature = "resman"))]
+impl<T> DataType for T
+where
+    T: Any + DynClone + std::fmt::Debug + erased_serde::Serialize + Send + Sync,
+{
+    fn type_name(&self) -> TypeNameLit {
+        TypeNameLit(std::any::type_name::<T>())
+    }
+
+    fn upcast(self: Box<Self>) -> Box<dyn resman::Resource> {
+        self
     }
 }
 
