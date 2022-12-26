@@ -9,15 +9,15 @@
 //! Add the following to `Cargo.toml`
 //!
 //! ```toml
-//! type_reg = { version = "0.4.0", features = ["tagged"] }
-//! type_reg = { version = "0.4.0", features = ["untagged"] }
+//! type_reg = { version = "0.5.0", features = ["tagged"] }
+//! type_reg = { version = "0.5.0", features = ["untagged"] }
 //!
 //! # Values must impl Debug, and TypeMap's Debug impl will
 //! # print the debug string of each value.
-//! type_reg = { version = "0.4.0", features = ["debug"] }
+//! type_reg = { version = "0.5.0", features = ["debug"] }
 //!
 //! # Use insertion order for TypeMap and TypeReg iteration order.
-//! type_reg = { version = "0.4.0", features = ["ordered"] }
+//! type_reg = { version = "0.5.0", features = ["ordered"] }
 //! ```
 //!
 //! ### Untagged Type Registry

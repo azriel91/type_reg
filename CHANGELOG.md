@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 0.5.0 (2022-12-26)
 
 * Update dependency versions.
 * Add `TypeMap::into_inner`.
