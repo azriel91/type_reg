@@ -30,6 +30,11 @@ impl BoxDtDisplay {
     {
         Self(Box::new(t))
     }
+
+    /// Returns the inner `Box<dyn DataTypeDisplay>`.
+    pub fn into_inner(self) -> Box<dyn DataTypeDisplay> {
+        self.0
+    }
 }
 
 impl Deref for BoxDtDisplay {

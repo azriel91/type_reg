@@ -89,6 +89,11 @@ where
         Self(Map::with_capacity(capacity))
     }
 
+    /// Returns the underlying map.
+    pub fn into_inner(self) -> Map<K, BoxDT> {
+        self.0
+    }
+
     /// Returns a reference to the value corresponding to the key.
     ///
     /// The key may be any borrowed form of the map’s key type, but `Hash` and
@@ -369,6 +374,16 @@ three: 3
 
         assert_eq!(Some(A(1)), type_map.get("one").copied());
         assert_eq!(Some(A(2)), type_map_clone.get("one").copied());
+    }
+
+    #[test]
+    fn into_inner() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        let index_map = type_map.into_inner();
+
+        assert!(index_map.get("one").is_some());
     }
 
     #[cfg(not(feature = "debug"))]

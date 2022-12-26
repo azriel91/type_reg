@@ -33,6 +33,11 @@ impl BoxDt {
     {
         Self(Box::new(t))
     }
+
+    /// Returns the inner `Box<dyn DataType>`.
+    pub fn into_inner(self) -> Box<dyn DataType> {
+        self.0
+    }
 }
 
 impl Deref for BoxDt {

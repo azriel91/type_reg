@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 (2022-12-26)
+
+* Update dependency versions.
+* Add `TypeMap::into_inner`.
+* Support upcasting from `Box<dyn DataType>` to `Box<dyn resman::Resource>`.
+* Add `BoxDtDisplay::into_inner`.
+* Add `BoxDt::into_inner`.
+
 ## 0.4.0 (2022-10-09)
 
 * In `untagged`, genericize `TypeReg` and `TypeMap`, so stored type may have different trait bounds.
