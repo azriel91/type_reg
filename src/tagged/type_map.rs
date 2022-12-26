@@ -53,6 +53,11 @@ where
         Self(Map::with_capacity(capacity))
     }
 
+    /// Returns the underlying map.
+    pub fn into_inner(self) -> Map<K, Box<dyn DataType>> {
+        self.0
+    }
+
     /// Returns a reference to the value corresponding to the key.
     ///
     /// The key may be any borrowed form of the map’s key type, but `Hash` and
