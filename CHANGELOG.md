@@ -1,5 +1,9 @@
 # Changelog
 
+## unreleased
+
+* Update dependency versions.
+
 ## 0.5.0 (2022-12-26)
 
 * Update dependency versions.
