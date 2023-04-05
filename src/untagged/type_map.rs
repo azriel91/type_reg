@@ -439,11 +439,11 @@ three: 3
         let mut type_map = TypeMap::new();
         type_map.insert("one", A(1));
 
-        type_map.values_mut().next().map(|v| {
+        if let Some(v) = type_map.values_mut().next() {
             if let Some(a) = BoxDataTypeDowncast::<A>::downcast_mut(v) {
                 a.0 = 2;
             }
-        });
+        };
 
         let one = type_map.get::<A, _>("one").copied();
         assert_eq!(Some(A(2)), one);
