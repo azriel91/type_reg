@@ -5,7 +5,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, IntoBoxDataType};
+use crate::untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, FromDataType};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -233,9 +233,9 @@ where
     #[cfg(not(feature = "debug"))]
     pub fn insert<R>(&mut self, k: K, r: R) -> Option<BoxDT>
     where
-        R: IntoBoxDataType<BoxDT>,
+        BoxDT: FromDataType<R>,
     {
-        self.0.insert(k, IntoBoxDataType::into(r))
+        self.0.insert(k, <BoxDT as FromDataType<R>>::from(r))
     }
 
     /// Inserts a key-value pair into the map.
@@ -248,9 +248,9 @@ where
     #[cfg(feature = "debug")]
     pub fn insert<R>(&mut self, k: K, r: R) -> Option<BoxDT>
     where
-        R: IntoBoxDataType<BoxDT>,
+        BoxDT: FromDataType<R>,
     {
-        self.0.insert(k, IntoBoxDataType::into(r))
+        self.0.insert(k, <BoxDT as FromDataType<R>>::from(r))
     }
 
     /// Inserts a key-value pair into the map.

@@ -1,8 +1,9 @@
 # Changelog
 
-## unreleased
+## 0.5.1 (2023-05-20)
 
 * Update dependency versions.
+* Replace `IntoBoxDataType` with `FromDataType` so external crates can use their own box DT.
 
 
 ## 0.5.0 (2022-12-26)

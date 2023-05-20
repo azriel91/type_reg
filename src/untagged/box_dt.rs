@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use serde::Serialize;
 
 use crate::{
-    untagged::{BoxDataTypeDowncast, DataType, DataTypeWrapper, IntoBoxDataType},
+    untagged::{BoxDataTypeDowncast, DataType, DataTypeWrapper, FromDataType},
     TypeNameLit,
 };
 
@@ -54,11 +54,11 @@ impl DerefMut for BoxDt {
     }
 }
 
-impl<T> IntoBoxDataType<BoxDt> for T
+impl<T> FromDataType<T> for BoxDt
 where
     T: DataType,
 {
-    fn into(t: Self) -> BoxDt {
+    fn from(t: T) -> BoxDt {
         BoxDt(Box::new(t))
     }
 }
