@@ -6,7 +6,7 @@ use std::{
 use serde::Serialize;
 
 use crate::{
-    untagged::{BoxDataTypeDowncast, DataType, DataTypeDisplay, DataTypeWrapper, IntoBoxDataType},
+    untagged::{BoxDataTypeDowncast, DataType, DataTypeDisplay, DataTypeWrapper, FromDataType},
     TypeNameLit,
 };
 
@@ -57,11 +57,11 @@ impl fmt::Display for BoxDtDisplay {
     }
 }
 
-impl<T> IntoBoxDataType<BoxDtDisplay> for T
+impl<T> FromDataType<T> for BoxDtDisplay
 where
     T: DataType + Display,
 {
-    fn into(t: Self) -> BoxDtDisplay {
+    fn from(t: T) -> BoxDtDisplay {
         BoxDtDisplay(Box::new(t))
     }
 }

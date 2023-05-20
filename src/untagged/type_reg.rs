@@ -6,7 +6,7 @@ use std::{
 
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::untagged::{BoxDt, DataType, DataTypeWrapper, IntoBoxDataType, TypeMap, TypeMapVisitor};
+use crate::untagged::{BoxDt, DataType, DataTypeWrapper, FromDataType, TypeMap, TypeMapVisitor};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -112,16 +112,17 @@ where
     /// ```
     pub fn register<R>(&mut self, key: K)
     where
-        R: serde::de::DeserializeOwned + DataType + IntoBoxDataType<BoxDT> + 'static,
+        R: serde::de::DeserializeOwned + DataType + 'static,
+        BoxDT: FromDataType<R>,
     {
         fn deserialize<BoxDTInner, R>(
             deserializer: &mut dyn erased_serde::Deserializer<'_>,
         ) -> Result<BoxDTInner, erased_serde::Error>
         where
-            R: serde::de::DeserializeOwned + DataType + IntoBoxDataType<BoxDTInner> + 'static,
-            BoxDTInner: DataTypeWrapper,
+            R: serde::de::DeserializeOwned + DataType + 'static,
+            BoxDTInner: DataTypeWrapper + FromDataType<R>,
         {
-            Ok(IntoBoxDataType::<BoxDTInner>::into(R::deserialize(
+            Ok(<BoxDTInner as FromDataType<R>>::from(R::deserialize(
                 deserializer,
             )?))
         }
