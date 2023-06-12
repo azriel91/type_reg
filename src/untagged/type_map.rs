@@ -223,6 +223,71 @@ where
             .and_then(BoxDataTypeDowncast::<R>::downcast_mut)
     }
 
+    /// Returns a reference to the boxed value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::{BoxDataTypeDowncast, TypeMap};
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let boxed_one = type_map.get_raw("one");
+    /// let one = boxed_one
+    ///     .and_then(|boxed_one| BoxDataTypeDowncast::<u32>::downcast_ref(boxed_one))
+    ///     .copied();
+    /// assert_eq!(Some(1), one);
+    /// ```
+    pub fn get_raw<Q>(&self, q: &Q) -> Option<&BoxDT>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.0.get(q)
+    }
+
+    /// Returns a mutable reference to the boxed value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::{BoxDataTypeDowncast, TypeMap};
+    ///
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// type_map.insert("one", 1u32);
+    ///
+    /// let boxed_one = type_map.get_raw_mut("one");
+    /// let one = boxed_one.and_then(|boxed_one| BoxDataTypeDowncast::<u32>::downcast_mut(boxed_one));
+    /// assert_eq!(Some(1).as_mut(), one);
+    ///
+    /// if let Some(one) = one {
+    ///     *one += 1;
+    /// }
+    ///
+    /// let one_plus_one = type_map.get::<u32, _>("one").copied();
+    /// assert_eq!(Some(2), one_plus_one);
+    /// ```
+    pub fn get_raw_mut<Q>(&mut self, q: &Q) -> Option<&mut BoxDT>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.0.get_mut(q)
+    }
+
     /// Inserts a key-value pair into the map.
     ///
     /// If the map did not have this key present, `None` is returned.
@@ -423,6 +488,36 @@ three: 3
         assert_eq!(Some(A(1)), one);
         assert_eq!(Some(ADisplay(2)), two);
         assert_eq!(None, three);
+    }
+
+    #[test]
+    fn get_raw() {
+        let mut type_map = TypeMap::<&'static str>::new();
+        type_map.insert("one", 1u32);
+        let boxed_one = type_map.get_raw("one");
+
+        let one = boxed_one
+            .and_then(BoxDataTypeDowncast::<u32>::downcast_ref)
+            .copied();
+
+        assert_eq!(Some(1), one);
+    }
+
+    #[test]
+    fn get_raw_mut() {
+        let mut type_map = TypeMap::<&'static str>::new();
+        type_map.insert("one", 1u32);
+
+        let boxed_one = type_map.get_raw_mut("one");
+        let one = boxed_one.and_then(BoxDataTypeDowncast::<u32>::downcast_mut);
+        assert_eq!(Some(1).as_mut(), one);
+
+        if let Some(one) = one {
+            *one += 1;
+        }
+
+        let one_plus_one = type_map.get::<u32, _>("one").copied();
+        assert_eq!(Some(2), one_plus_one);
     }
 
     #[test]
