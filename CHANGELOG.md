@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## 0.5.2 (2023-06-12)
 
 * Add `untagged::TypeMap::{get_raw, get_raw_mut}`.
 
