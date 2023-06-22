@@ -96,6 +96,42 @@ where
     K: Eq + Hash,
     UnknownEntriesT: UnknownEntries,
 {
+    // Creates an empty `TypeMap`.
+    ///
+    /// The map is initially created with a capacity of 0, so it will not
+    /// allocate until it is first inserted into.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::TypeMap;
+    /// let mut type_map = TypeMap::<&'static str>::new();
+    /// ```
+    pub fn new_typed() -> Self {
+        Self {
+            inner: Map::new(),
+            unknown_entries: Map::new(),
+        }
+    }
+
+    /// Creates an empty `TypeMap` with the specified capacity.
+    ///
+    /// The map will be able to hold at least capacity elements without
+    /// reallocating. If capacity is 0, the map will not allocate.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::TypeMap;
+    /// let type_map = TypeMap::<&'static str>::with_capacity(10);
+    /// ```
+    pub fn with_capacity_typed(capacity: usize) -> Self {
+        Self {
+            inner: Map::with_capacity(capacity),
+            unknown_entries: Map::new(),
+        }
+    }
+
     /// Returns a reference to the value corresponding to the key.
     ///
     /// The key may be any borrowed form of the map’s key type, but `Hash` and
