@@ -159,6 +159,9 @@ pub use crate::type_name_lit::TypeNameLit;
 
 mod type_name_lit;
 
+#[cfg(any(feature = "tagged", feature = "untagged"))]
+mod common;
+
 // This is used in `Debug` impls, but for some reason rustc warns the fields
 // are not used.
 #[allow(dead_code)]

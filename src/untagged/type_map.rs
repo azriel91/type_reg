@@ -5,7 +5,10 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use crate::untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, FromDataType};
+use crate::{
+    common::{UnknownEntries, UnknownEntriesNone, UnknownEntriesSome},
+    untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, FromDataType},
+};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -16,12 +19,16 @@ use indexmap::IndexMap as Map;
 /// Map of types that can be serialized / deserialized.
 #[derive(serde::Serialize)]
 #[serde(transparent)]
-pub struct TypeMap<K, BoxDT = BoxDt>
+pub struct TypeMap<K, BoxDT = BoxDt, UnknownEntriesT = UnknownEntriesNone>
 where
     K: Eq + Hash,
+    UnknownEntriesT: UnknownEntries,
 {
     /// Underlying map.
     inner: Map<K, BoxDT>,
+    /// Unknown entries encountered during deserialization.
+    #[serde(skip_serializing)]
+    unknown_entries: Map<K, <UnknownEntriesT as UnknownEntries>::ValueT>,
 }
 
 impl<K> TypeMap<K, BoxDt>
@@ -40,7 +47,10 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self { inner: Map::new() }
+        Self {
+            inner: Map::new(),
+            unknown_entries: Map::new(),
+        }
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -57,14 +67,43 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             inner: Map::with_capacity(capacity),
+            unknown_entries: Map::new(),
         }
     }
 }
 
-impl<K, BoxDT> TypeMap<K, BoxDT>
+impl<K, BoxDT> TypeMap<K, BoxDT, UnknownEntriesNone>
 where
     K: Eq + Hash,
     BoxDT: DataTypeWrapper,
+{
+    /// Returns the underlying map.
+    pub fn into_inner(self) -> Map<K, BoxDT> {
+        self.inner
+    }
+}
+
+impl<
+    K,
+    BoxDT,
+    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
+    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
+> TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
+where
+    K: Eq + Hash,
+    BoxDT: DataTypeWrapper,
+{
+    /// Returns the underlying map and unknown entries.
+    pub fn into_inner(self) -> (Map<K, BoxDT>, Map<K, ValueT>) {
+        (self.inner, self.unknown_entries)
+    }
+}
+
+impl<K, BoxDT, UnknownEntriesT> TypeMap<K, BoxDT, UnknownEntriesT>
+where
+    K: Eq + Hash,
+    BoxDT: DataTypeWrapper,
+    UnknownEntriesT: UnknownEntries,
 {
     // Creates an empty `TypeMap`.
     ///
@@ -78,7 +117,10 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new_typed() -> Self {
-        Self { inner: Map::new() }
+        Self {
+            inner: Map::new(),
+            unknown_entries: Map::new(),
+        }
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -95,12 +137,8 @@ where
     pub fn with_capacity_typed(capacity: usize) -> Self {
         Self {
             inner: Map::with_capacity(capacity),
+            unknown_entries: Map::new(),
         }
-    }
-
-    /// Returns the underlying map.
-    pub fn into_inner(self) -> Map<K, BoxDT> {
-        self.inner
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -339,35 +377,47 @@ where
     }
 }
 
-impl<K, BoxDT> Clone for TypeMap<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> Clone for TypeMap<K, BoxDT, UnknownEntriesT>
 where
     K: Clone + Eq + Hash,
     BoxDT: DataTypeWrapper,
+    UnknownEntriesT: UnknownEntries,
 {
     fn clone(&self) -> Self {
-        let mut type_map = TypeMap::<K, BoxDT>::with_capacity_typed(self.inner.len());
+        let mut type_map = TypeMap::<K, BoxDT, UnknownEntriesT> {
+            inner: Map::with_capacity(self.inner.len()),
+            unknown_entries: Map::with_capacity(self.unknown_entries.len()),
+        };
         self.inner.iter().for_each(|(k, v)| {
             let value = v.clone();
             type_map.insert_raw(k.clone(), value);
+        });
+        self.unknown_entries.iter().for_each(|(k, v)| {
+            let k = k.clone();
+            let v = v.clone();
+            type_map.unknown_entries.insert(k, v);
         });
         type_map
     }
 }
 
-impl<K, BoxDT> Default for TypeMap<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> Default for TypeMap<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash,
+    UnknownEntriesT: UnknownEntries,
 {
     fn default() -> Self {
         Self {
             inner: Map::default(),
+            unknown_entries: Map::default(),
         }
     }
 }
 
-impl<K, BoxDT> Deref for TypeMap<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> Deref for TypeMap<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash,
+    UnknownEntriesT: UnknownEntries,
 {
     type Target = Map<K, BoxDT>;
 
@@ -376,16 +426,17 @@ where
     }
 }
 
-impl<K, BoxDT> DerefMut for TypeMap<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> DerefMut for TypeMap<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash,
+    UnknownEntriesT: UnknownEntries,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<K, BoxDT> fmt::Debug for TypeMap<K, BoxDT>
+impl<K, BoxDT> fmt::Debug for TypeMap<K, BoxDT, UnknownEntriesNone>
 where
     K: Eq + Hash + fmt::Debug,
     BoxDT: DataTypeWrapper,
@@ -415,13 +466,72 @@ where
     }
 }
 
+struct InnerWrapper<'inner, K, BoxDT>
+where
+    K: Eq + Hash + fmt::Debug,
+    BoxDT: DataTypeWrapper,
+{
+    inner: &'inner Map<K, BoxDT>,
+}
+
+impl<'inner, K, BoxDT> fmt::Debug for InnerWrapper<'inner, K, BoxDT>
+where
+    K: Eq + Hash + fmt::Debug,
+    BoxDT: DataTypeWrapper,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut debug_map = f.debug_map();
+
+        self.inner.iter().for_each(|(k, resource)| {
+            // At runtime, we are unable to determine if the resource is `Debug`.
+            #[cfg(not(feature = "debug"))]
+            let value = &"..";
+
+            #[cfg(feature = "debug")]
+            let value = resource.debug();
+
+            let type_name = resource.type_name();
+            let debug_value = crate::TypedValue {
+                r#type: type_name,
+                value,
+            };
+
+            debug_map.key(&k);
+            debug_map.value(&debug_value);
+        });
+
+        debug_map.finish()
+    }
+}
+
+impl<
+    K,
+    BoxDT,
+    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
+    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
+> fmt::Debug for TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
+where
+    K: Eq + Hash + fmt::Debug,
+    BoxDT: DataTypeWrapper,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("TypeMap")
+            .field("inner", &InnerWrapper { inner: &self.inner })
+            .field("unknown_entries", &self.unknown_entries)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::fmt::{self, Write};
 
     use serde::{Deserialize, Serialize};
 
-    use crate::untagged::{BoxDataTypeDowncast, BoxDtDisplay, TypeMap};
+    use crate::{
+        common::UnknownEntriesSome,
+        untagged::{BoxDataTypeDowncast, BoxDt, BoxDtDisplay, TypeMap},
+    };
 
     #[cfg(feature = "ordered")]
     #[test]
@@ -484,6 +594,51 @@ three: 3
             r#"{"one": TypedValue { type: "type_reg::untagged::type_map::tests::A", value: A(1) }}"#,
             format!("{type_map:?}")
         );
+    }
+
+    #[cfg(feature = "debug")]
+    #[test]
+    fn debug_with_unknown_entries_some() {
+        let mut type_map = TypeMap::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map.insert("one", A(1));
+
+        assert_eq!(
+            "TypeMap { \
+                inner: {\
+                    \"one\": TypedValue { type: \"type_reg::untagged::type_map::tests::A\", value: A(1) }}, \
+                unknown_entries: {} \
+            }",
+            format!("{type_map:?}")
+        );
+    }
+
+    #[test]
+    fn into_inner_unknown_entries_none() {
+        let mut type_map = TypeMap::new();
+        type_map.insert("one", A(1));
+
+        let mut inner = type_map.into_inner();
+        let one = inner
+            .get_mut("one")
+            .and_then(BoxDataTypeDowncast::<A>::downcast_mut)
+            .copied();
+
+        assert_eq!(Some(A(1)), one);
+    }
+
+    #[test]
+    fn into_inner_unknown_entries_some() {
+        let mut type_map = TypeMap::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map.insert("one", A(1));
+
+        let (mut inner, unknown_entries) = type_map.into_inner();
+        let one = inner
+            .get_mut("one")
+            .and_then(BoxDataTypeDowncast::<A>::downcast_mut)
+            .copied();
+
+        assert_eq!(Some(A(1)), one);
+        assert!(unknown_entries.is_empty());
     }
 
     #[test]
