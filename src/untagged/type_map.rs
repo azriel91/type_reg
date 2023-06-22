@@ -1,6 +1,6 @@
 use std::{
     borrow::Borrow,
-    fmt,
+    fmt::{self, Debug},
     hash::Hash,
     ops::{Deref, DerefMut},
 };
@@ -83,19 +83,95 @@ where
     }
 }
 
-impl<
-    K,
-    BoxDT,
-    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
-    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
-> TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
+impl<K, BoxDT, ValueT> TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
 where
     K: Eq + Hash,
     BoxDT: DataTypeWrapper,
+    ValueT: Clone + Debug + PartialEq + Eq,
 {
     /// Returns the underlying map and unknown entries.
     pub fn into_inner(self) -> (Map<K, BoxDT>, Map<K, ValueT>) {
         (self.inner, self.unknown_entries)
+    }
+
+    /// Returns the entries that were unable to be deserialized.
+    ///
+    /// These are the entries from the source data for which no type was
+    /// registered against the [`TypeReg`] used to deserialize that source data.
+    ///
+    /// [`TypeReg`]: crate::untagged::TypeReg
+    pub fn unknown_entries(&self) -> &Map<K, ValueT> {
+        &self.unknown_entries
+    }
+
+    /// Returns a reference to the value corresponding to the key.
+    ///
+    /// The key may be any borrowed form of the map’s key type, but `Hash` and
+    /// `Eq` on the borrowed form must match those for the key type.
+    ///
+    /// If there is an entry, but the data type does not match, `None` is
+    /// returned.
+    ///
+    /// # Examples
+    ///
+    /// ## YAML
+    ///
+    /// ```rust
+    /// use type_reg::untagged::{TypeMap, TypeReg};
+    ///
+    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+    ///
+    /// let type_map = type_reg
+    ///     .deserialize_map(serde_yaml::Deserializer::from_str("one: 1"))
+    ///     .unwrap();
+    ///
+    /// let one = type_map.get_unknown_entry("one").cloned();
+    ///
+    /// assert_eq!(
+    ///     one,
+    ///     Some(serde_yaml::Value::Number(serde_yaml::Number::from(1u32)))
+    /// );
+    /// assert_eq!(1, type_map.unknown_entries().len());
+    /// ```
+    ///
+    /// ## JSON
+    ///
+    /// ```rust
+    /// use type_reg::untagged::{TypeMap, TypeReg};
+    ///
+    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_json::Value>();
+    ///
+    /// let type_map = type_reg
+    ///     .deserialize_map(&mut serde_json::Deserializer::from_str(r#"{ "one": 1 }"#))
+    ///     .unwrap();
+    ///
+    /// let one = type_map.get_unknown_entry("one").cloned();
+    ///
+    /// assert_eq!(
+    ///     one,
+    ///     Some(serde_json::Value::Number(serde_json::Number::from(1u32)))
+    /// );
+    /// assert_eq!(1, type_map.unknown_entries().len());
+    /// ```
+    pub fn get_unknown_entry<Q>(&self, q: &Q) -> Option<&ValueT>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.unknown_entries().get(q)
+    }
+
+    /// Inserts an unknown entry into the map.
+    ///
+    /// This is only used during deserialization.
+    ///
+    /// If the map did not have this key present, `None` is returned.
+    ///
+    /// If the map did have this key present, the value is updated, and the old
+    /// value is returned. The key is not updated, though; this matters for
+    /// types that can be `==` without being identical.
+    pub(crate) fn insert_unknown_entry(&mut self, k: K, v: ValueT) -> Option<ValueT> {
+        self.unknown_entries.insert(k, v)
     }
 }
 
@@ -198,7 +274,7 @@ where
         K: Borrow<Q>,
         BoxDT: BoxDataTypeDowncast<R>,
         Q: Hash + Eq + ?Sized,
-        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.inner
             .get(q)
@@ -263,7 +339,7 @@ where
         K: Borrow<Q>,
         BoxDT: BoxDataTypeDowncast<R>,
         Q: Hash + Eq + ?Sized,
-        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.inner
             .get_mut(q)
@@ -436,9 +512,9 @@ where
     }
 }
 
-impl<K, BoxDT> fmt::Debug for TypeMap<K, BoxDT, UnknownEntriesNone>
+impl<K, BoxDT> Debug for TypeMap<K, BoxDT, UnknownEntriesNone>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -468,15 +544,15 @@ where
 
 struct InnerWrapper<'inner, K, BoxDT>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
 {
     inner: &'inner Map<K, BoxDT>,
 }
 
-impl<'inner, K, BoxDT> fmt::Debug for InnerWrapper<'inner, K, BoxDT>
+impl<'inner, K, BoxDT> Debug for InnerWrapper<'inner, K, BoxDT>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -504,15 +580,11 @@ where
     }
 }
 
-impl<
-    K,
-    BoxDT,
-    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
-    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
-> fmt::Debug for TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
+impl<K, BoxDT, ValueT> Debug for TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
+    ValueT: Clone + Debug + PartialEq + Eq,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TypeMap")
@@ -580,6 +652,25 @@ three: 3
 
         assert_eq!(
             r#"{"one": TypedValue { type: "type_reg::untagged::type_map::tests::A", value: ".." }}"#,
+            format!("{type_map:?}")
+        );
+
+        let mut type_map = TypeMap::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map.insert("one", A(1));
+    }
+
+    #[cfg(not(feature = "debug"))]
+    #[test]
+    fn debug_with_unknown_entries_some() {
+        let mut type_map = TypeMap::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map.insert("one", A(1));
+
+        assert_eq!(
+            "TypeMap { \
+                inner: {\
+                    \"one\": TypedValue { type: \"type_reg::untagged::type_map::tests::A\", value: \"..\" }}, \
+                unknown_entries: {} \
+            }",
             format!("{type_map:?}")
         );
     }

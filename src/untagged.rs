@@ -48,7 +48,7 @@ pub use self::{
     box_data_type_downcast::BoxDataTypeDowncast, box_dt::BoxDt, box_dt_display::BoxDtDisplay,
     data_type::DataType, data_type_display::DataTypeDisplay, data_type_wrapper::DataTypeWrapper,
     from_data_type::FromDataType, type_map::TypeMap, type_map_visitor::TypeMapVisitor,
-    type_reg::TypeReg,
+    type_reg::TypeReg, unknown_entries_some_fn_seed::UnknownEntriesSomeFnSeed,
 };
 
 mod box_data_type_downcast;
@@ -61,3 +61,4 @@ mod from_data_type;
 mod type_map;
 mod type_map_visitor;
 mod type_reg;
+mod unknown_entries_some_fn_seed;
