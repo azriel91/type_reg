@@ -39,17 +39,17 @@ where
         write!(f, "a map of arbitrary data types")
     }
 
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(self, mut map_access: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::MapAccess<'de>,
     {
-        let mut type_map = match map.size_hint() {
+        let mut type_map = match map_access.size_hint() {
             Some(n) => TypeMap::with_capacity(n),
             _ => TypeMap::new(),
         };
 
-        while let Some(key) = map.next_key::<MapK>()? {
-            let value = map.next_value_seed(self.type_reg)?;
+        while let Some(key) = map_access.next_key::<MapK>()? {
+            let value = map_access.next_value_seed(self.type_reg)?;
 
             type_map.insert_raw(key, value);
         }
