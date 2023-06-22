@@ -1,5 +1,11 @@
 # Changelog
 
+## unreleased
+
+* Add `untagged::TypeReg::with_unknown_entries` so unregistered values can be deserialized as a generic value type.
+* Add `untagged::TypeMap::unknown_entries` to access entries that did not have a type registered for deserialization.
+
+
 ## 0.5.2 (2023-06-12)
 
 * Add `untagged::TypeMap::{get_raw, get_raw_mut}`.
