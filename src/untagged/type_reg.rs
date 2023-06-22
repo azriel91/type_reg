@@ -111,6 +111,18 @@ where
         }
     }
 
+    /// Specifies the type to use to deserialize unregistered values.
+    ///
+    /// This should be the generic `Value` type of your serialization format,
+    /// e.g. `serde_yaml::Value` if you are deserializing from YAML, or
+    /// `serde_json::Value` if you are deserializing JSON.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use type_reg::untagged::TypeReg;
+    /// let type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+    /// ```
     pub fn with_unknown_entries<ValueT>(self) -> TypeReg<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>
     where
         ValueT: serde::de::DeserializeOwned + 'static,
