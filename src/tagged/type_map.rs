@@ -15,9 +15,14 @@ use indexmap::IndexMap as Map;
 
 /// Map of types that can be serialized / deserialized.
 #[derive(serde::Serialize)]
-pub struct TypeMap<K>(Map<K, Box<dyn DataType>>)
+#[serde(transparent)]
+pub struct TypeMap<K>
 where
-    K: Eq + Hash;
+    K: Eq + Hash,
+{
+    /// Underlying map.
+    inner: Map<K, Box<dyn DataType>>,
+}
 
 impl<K> TypeMap<K>
 where
@@ -35,7 +40,7 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self(Map::new())
+        Self { inner: Map::new() }
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -50,12 +55,14 @@ where
     /// let type_map = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            inner: Map::with_capacity(capacity),
+        }
     }
 
     /// Returns the underlying map.
     pub fn into_inner(self) -> Map<K, Box<dyn DataType>> {
-        self.0
+        self.inner
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -84,7 +91,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get(q).and_then(|n| n.downcast_ref::<R>())
+        self.inner.get(q).and_then(|n| n.downcast_ref::<R>())
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -113,7 +120,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get(q).and_then(|n| n.downcast_ref::<R>())
+        self.inner.get(q).and_then(|n| n.downcast_ref::<R>())
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
@@ -143,7 +150,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
+        self.inner.get_mut(q).and_then(|n| n.downcast_mut::<R>())
     }
 
     /// Returns a mutable reference to the value corresponding to the key.
@@ -172,7 +179,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.get_mut(q).and_then(|n| n.downcast_mut::<R>())
+        self.inner.get_mut(q).and_then(|n| n.downcast_mut::<R>())
     }
 
     /// Inserts a key-value pair into the map.
@@ -187,7 +194,7 @@ where
     where
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.insert(k, Box::new(r))
+        self.inner.insert(k, Box::new(r))
     }
 
     /// Inserts a key-value pair into the map.
@@ -202,7 +209,7 @@ where
     where
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0.insert(k, Box::new(r))
+        self.inner.insert(k, Box::new(r))
     }
 
     /// Inserts a key-value pair into the map.
@@ -213,7 +220,7 @@ where
     /// value is returned. The key is not updated, though; this matters for
     /// types that can be `==` without being identical.
     pub fn insert_raw(&mut self, k: K, v: Box<dyn DataType>) -> Option<Box<dyn DataType>> {
-        self.0.insert(k, v)
+        self.inner.insert(k, v)
     }
 }
 
@@ -222,8 +229,8 @@ where
     K: Clone + Eq + Hash,
 {
     fn clone(&self) -> Self {
-        let mut type_map = TypeMap::<K>::with_capacity(self.0.len());
-        self.0.iter().for_each(|(k, v)| {
+        let mut type_map = TypeMap::<K>::with_capacity(self.inner.len());
+        self.inner.iter().for_each(|(k, v)| {
             let value = dyn_clone::clone_box(v);
             type_map.insert_raw(k.clone(), value);
         });
@@ -236,7 +243,9 @@ where
     K: Eq + Hash,
 {
     fn default() -> Self {
-        Self(Map::default())
+        Self {
+            inner: Map::default(),
+        }
     }
 }
 
@@ -247,7 +256,7 @@ where
     type Target = Map<K, Box<dyn DataType>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 
@@ -256,7 +265,7 @@ where
     K: Eq + Hash,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 
@@ -267,7 +276,7 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
-        self.0.iter().for_each(|(k, resource)| {
+        self.inner.iter().for_each(|(k, resource)| {
             // At runtime, we are unable to determine if the resource is `Debug`.
             #[cfg(not(feature = "debug"))]
             let value = &"..";

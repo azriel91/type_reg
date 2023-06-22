@@ -15,9 +15,14 @@ use indexmap::IndexMap as Map;
 
 /// Map of types that can be serialized / deserialized.
 #[derive(serde::Serialize)]
-pub struct TypeMap<K, BoxDT = BoxDt>(Map<K, BoxDT>)
+#[serde(transparent)]
+pub struct TypeMap<K, BoxDT = BoxDt>
 where
-    K: Eq + Hash;
+    K: Eq + Hash,
+{
+    /// Underlying map.
+    inner: Map<K, BoxDT>,
+}
 
 impl<K> TypeMap<K, BoxDt>
 where
@@ -35,7 +40,7 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self(Map::new())
+        Self { inner: Map::new() }
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -50,7 +55,9 @@ where
     /// let type_map = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            inner: Map::with_capacity(capacity),
+        }
     }
 }
 
@@ -71,7 +78,7 @@ where
     /// let mut type_map = TypeMap::<&'static str>::new();
     /// ```
     pub fn new_typed() -> Self {
-        Self(Map::new())
+        Self { inner: Map::new() }
     }
 
     /// Creates an empty `TypeMap` with the specified capacity.
@@ -86,12 +93,14 @@ where
     /// let type_map = TypeMap::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity_typed(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            inner: Map::with_capacity(capacity),
+        }
     }
 
     /// Returns the underlying map.
     pub fn into_inner(self) -> Map<K, BoxDT> {
-        self.0
+        self.inner
     }
 
     /// Returns a reference to the value corresponding to the key.
@@ -121,7 +130,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0
+        self.inner
             .get(q)
             .and_then(BoxDataTypeDowncast::<R>::downcast_ref)
     }
@@ -153,7 +162,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0
+        self.inner
             .get(q)
             .and_then(BoxDataTypeDowncast::<R>::downcast_ref)
     }
@@ -186,7 +195,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + serde::Serialize + Send + Sync + 'static,
     {
-        self.0
+        self.inner
             .get_mut(q)
             .and_then(BoxDataTypeDowncast::<R>::downcast_mut)
     }
@@ -218,7 +227,7 @@ where
         Q: Hash + Eq + ?Sized,
         R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
     {
-        self.0
+        self.inner
             .get_mut(q)
             .and_then(BoxDataTypeDowncast::<R>::downcast_mut)
     }
@@ -250,7 +259,7 @@ where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
     {
-        self.0.get(q)
+        self.inner.get(q)
     }
 
     /// Returns a mutable reference to the boxed value corresponding to the key.
@@ -285,7 +294,7 @@ where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
     {
-        self.0.get_mut(q)
+        self.inner.get_mut(q)
     }
 
     /// Inserts a key-value pair into the map.
@@ -300,7 +309,7 @@ where
     where
         BoxDT: FromDataType<R>,
     {
-        self.0.insert(k, <BoxDT as FromDataType<R>>::from(r))
+        self.inner.insert(k, <BoxDT as FromDataType<R>>::from(r))
     }
 
     /// Inserts a key-value pair into the map.
@@ -315,7 +324,7 @@ where
     where
         BoxDT: FromDataType<R>,
     {
-        self.0.insert(k, <BoxDT as FromDataType<R>>::from(r))
+        self.inner.insert(k, <BoxDT as FromDataType<R>>::from(r))
     }
 
     /// Inserts a key-value pair into the map.
@@ -326,7 +335,7 @@ where
     /// value is returned. The key is not updated, though; this matters for
     /// types that can be `==` without being identical.
     pub fn insert_raw(&mut self, k: K, v: BoxDT) -> Option<BoxDT> {
-        self.0.insert(k, v)
+        self.inner.insert(k, v)
     }
 }
 
@@ -336,8 +345,8 @@ where
     BoxDT: DataTypeWrapper,
 {
     fn clone(&self) -> Self {
-        let mut type_map = TypeMap::<K, BoxDT>::with_capacity_typed(self.0.len());
-        self.0.iter().for_each(|(k, v)| {
+        let mut type_map = TypeMap::<K, BoxDT>::with_capacity_typed(self.inner.len());
+        self.inner.iter().for_each(|(k, v)| {
             let value = v.clone();
             type_map.insert_raw(k.clone(), value);
         });
@@ -350,7 +359,9 @@ where
     K: Eq + Hash,
 {
     fn default() -> Self {
-        Self(Map::default())
+        Self {
+            inner: Map::default(),
+        }
     }
 }
 
@@ -361,7 +372,7 @@ where
     type Target = Map<K, BoxDT>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.inner
     }
 }
 
@@ -370,7 +381,7 @@ where
     K: Eq + Hash,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.inner
     }
 }
 
@@ -382,7 +393,7 @@ where
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
-        self.0.iter().for_each(|(k, resource)| {
+        self.inner.iter().for_each(|(k, resource)| {
             // At runtime, we are unable to determine if the resource is `Debug`.
             #[cfg(not(feature = "debug"))]
             let value = &"..";
