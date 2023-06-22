@@ -1,12 +1,16 @@
 use std::{
     fmt,
     hash::Hash,
+    marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::untagged::{BoxDt, DataType, DataTypeWrapper, FromDataType, TypeMap, TypeMapVisitor};
+use crate::{
+    common::{UnknownEntries, UnknownEntriesNone},
+    untagged::{BoxDt, DataType, DataTypeWrapper, FromDataType, TypeMap, TypeMapVisitor},
+};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -15,11 +19,15 @@ use std::collections::HashMap as Map;
 use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<K, BoxDT = BoxDt>(Map<K, BoxFnSeed<BoxDT>>)
+pub struct TypeReg<K, BoxDT = BoxDt, UnknownEntriesT = UnknownEntriesNone>
 where
-    K: Eq + Hash + fmt::Debug;
+    K: Eq + Hash + fmt::Debug,
+{
+    fn_seeds: Map<K, BoxFnSeed<BoxDT>>,
+    marker: PhantomData<UnknownEntriesT>,
+}
 
-impl<K> TypeReg<K, BoxDt>
+impl<K> TypeReg<K, BoxDt, UnknownEntriesNone>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -35,7 +43,10 @@ where
     /// let mut type_reg = TypeReg::<&'static str>::new();
     /// ```
     pub fn new() -> Self {
-        Self(Map::new())
+        Self {
+            fn_seeds: Map::new(),
+            marker: PhantomData,
+        }
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -50,11 +61,14 @@ where
     /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            fn_seeds: Map::with_capacity(capacity),
+            marker: PhantomData,
+        }
     }
 }
 
-impl<K, BoxDT> TypeReg<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug,
     BoxDT: DataTypeWrapper + 'static,
@@ -71,7 +85,10 @@ where
     /// let mut type_reg = TypeReg::<&'static str>::new();
     /// ```
     pub fn new_typed() -> Self {
-        Self(Map::new())
+        Self {
+            fn_seeds: Map::new(),
+            marker: PhantomData,
+        }
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -86,7 +103,10 @@ where
     /// let type_reg = TypeReg::<&'static str>::with_capacity(10);
     /// ```
     pub fn with_capacity_typed(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            fn_seeds: Map::with_capacity(capacity),
+            marker: PhantomData,
+        }
     }
 
     /// Registers a type in this type registry.
@@ -127,7 +147,8 @@ where
             )?))
         }
 
-        self.0.insert(key, BoxFnSeed::new(deserialize::<BoxDT, R>));
+        self.fn_seeds
+            .insert(key, BoxFnSeed::new(deserialize::<BoxDT, R>));
     }
 
     /// Deserializes a map of arbitrary values into a [`TypeMap`].
@@ -158,9 +179,13 @@ where
     ///
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     /// ```
-    pub fn deserialize_map<'de, D, E>(&'de self, deserializer: D) -> Result<TypeMap<K, BoxDT>, E>
+    pub fn deserialize_map<'de, D, E>(
+        &'de self,
+        deserializer: D,
+    ) -> Result<TypeMap<K, BoxDT, UnknownEntriesT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
+        UnknownEntriesT: UnknownEntries,
         D: serde::de::Deserializer<'de, Error = E>,
         E: serde::de::Error,
     {
@@ -202,7 +227,7 @@ where
     where
         E: serde::de::Error,
     {
-        self.0.get(type_key).ok_or_else(|| {
+        self.fn_seeds.get(type_key).ok_or_else(|| {
             use std::fmt::Write;
             let mut message = String::with_capacity(256);
             write!(
@@ -213,7 +238,7 @@ where
 
             message.push_str("\nAvailable types are:\n\n");
             let mut message = self
-                .0
+                .fn_seeds
                 .keys()
                 .try_fold(message, |mut message, key| {
                     writeln!(message, "- {key:?}")?;
@@ -227,16 +252,19 @@ where
     }
 }
 
-impl<K, BoxDT> Default for TypeReg<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> Default for TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug,
 {
     fn default() -> Self {
-        Self(Map::default())
+        Self {
+            fn_seeds: Map::default(),
+            marker: PhantomData,
+        }
     }
 }
 
-impl<K, BoxDT> fmt::Debug for TypeReg<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> fmt::Debug for TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug,
 {
@@ -244,7 +272,7 @@ where
         let mut debug_map = f.debug_map();
 
         // BoxFnSeed is `!Debug`, so we just use "..".
-        self.0.keys().for_each(|k| {
+        self.fn_seeds.keys().for_each(|k| {
             debug_map.key(&k);
             debug_map.value(&"..");
         });
@@ -253,28 +281,29 @@ where
     }
 }
 
-impl<K, BoxDT> Deref for TypeReg<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> Deref for TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug,
 {
     type Target = Map<K, BoxFnSeed<BoxDT>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.fn_seeds
     }
 }
 
-impl<K, BoxDT> DerefMut for TypeReg<K, BoxDT>
+impl<K, BoxDT, UnknownEntriesT> DerefMut for TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.fn_seeds
     }
 }
 
 // Used by [`serde_tagged`] to select which [`DeserializeSeed`] function to use.
-impl<'r, 'de, K, BoxDT> SeedFactory<'de, K> for &'r TypeReg<K, BoxDT>
+impl<'r, 'de, K, BoxDT, UnknownEntriesT> SeedFactory<'de, K>
+    for &'r TypeReg<K, BoxDT, UnknownEntriesT>
 where
     K: Eq + Hash + fmt::Debug + 'de,
     BoxDT: DataTypeWrapper + 'static,
