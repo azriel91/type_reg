@@ -1,6 +1,6 @@
 use std::{
     borrow::Borrow,
-    fmt,
+    fmt::{self, Debug},
     hash::Hash,
     ops::{Deref, DerefMut},
 };
@@ -77,13 +77,10 @@ where
     }
 }
 
-impl<
-    K,
-    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
-    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
-> TypeMap<K, UnknownEntriesSome<ValueT>>
+impl<K, ValueT> TypeMap<K, UnknownEntriesSome<ValueT>>
 where
     K: Eq + Hash,
+    ValueT: Clone + Debug + PartialEq + Eq,
 {
     /// Returns the underlying map and unknown entries.
     pub fn into_inner(self) -> (Map<K, Box<dyn DataType>>, Map<K, ValueT>) {
@@ -185,7 +182,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.inner.get(q).and_then(|n| n.downcast_ref::<R>())
     }
@@ -244,7 +241,7 @@ where
     where
         K: Borrow<Q>,
         Q: Hash + Eq + ?Sized,
-        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.inner.get_mut(q).and_then(|n| n.downcast_mut::<R>())
     }
@@ -274,7 +271,7 @@ where
     #[cfg(feature = "debug")]
     pub fn insert<R>(&mut self, k: K, r: R) -> Option<Box<dyn DataType>>
     where
-        R: Clone + fmt::Debug + serde::Serialize + Send + Sync + 'static,
+        R: Clone + Debug + serde::Serialize + Send + Sync + 'static,
     {
         self.inner.insert(k, Box::new(r))
     }
@@ -349,9 +346,9 @@ where
     }
 }
 
-impl<K> fmt::Debug for TypeMap<K, UnknownEntriesNone>
+impl<K> Debug for TypeMap<K, UnknownEntriesNone>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
@@ -380,14 +377,14 @@ where
 
 struct InnerWrapper<'inner, K>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
 {
     inner: &'inner Map<K, Box<dyn DataType>>,
 }
 
-impl<'inner, K> fmt::Debug for InnerWrapper<'inner, K>
+impl<'inner, K> Debug for InnerWrapper<'inner, K>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
@@ -414,13 +411,10 @@ where
     }
 }
 
-impl<
-    K,
-    #[cfg(not(feature = "debug"))] ValueT: Clone + PartialEq + Eq,
-    #[cfg(feature = "debug")] ValueT: Clone + std::fmt::Debug + PartialEq + Eq,
-> fmt::Debug for TypeMap<K, UnknownEntriesSome<ValueT>>
+impl<K, ValueT> Debug for TypeMap<K, UnknownEntriesSome<ValueT>>
 where
-    K: Eq + Hash + fmt::Debug,
+    K: Eq + Hash + Debug,
+    ValueT: Clone + Debug + PartialEq + Eq,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("TypeMap")
