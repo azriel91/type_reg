@@ -651,12 +651,9 @@ three: 3
         type_map.insert("one", A(1));
 
         assert_eq!(
-            r#"{"one": TypedValue { type: "type_reg::untagged::type_map::tests::A", value: ".." }}"#,
+            "{\"one\": TypedValue { type: \"type_reg::untagged::type_map::tests::A\", value: \"..\" }}",
             format!("{type_map:?}")
         );
-
-        let mut type_map = TypeMap::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
-        type_map.insert("one", A(1));
     }
 
     #[cfg(not(feature = "debug"))]
@@ -668,7 +665,8 @@ three: 3
         assert_eq!(
             "TypeMap { \
                 inner: {\
-                    \"one\": TypedValue { type: \"type_reg::untagged::type_map::tests::A\", value: \"..\" }}, \
+                    \"one\": TypedValue { type: \"type_reg::untagged::type_map::tests::A\", value: \"..\" }\
+                }, \
                 unknown_entries: {} \
             }",
             format!("{type_map:?}")

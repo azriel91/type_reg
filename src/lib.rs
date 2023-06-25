@@ -150,6 +150,8 @@
 //! }
 //! ```
 
+#[cfg(any(feature = "tagged", feature = "untagged"))]
+pub mod common;
 #[cfg(feature = "tagged")]
 pub mod tagged;
 #[cfg(feature = "untagged")]
@@ -158,9 +160,6 @@ pub mod untagged;
 pub use crate::type_name_lit::TypeNameLit;
 
 mod type_name_lit;
-
-#[cfg(any(feature = "tagged", feature = "untagged"))]
-mod common;
 
 // This is used in `Debug` impls, but for some reason rustc warns the fields
 // are not used.
