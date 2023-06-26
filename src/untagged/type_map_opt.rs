@@ -7,7 +7,7 @@ use std::{
 
 use crate::{
     common::{UnknownEntries, UnknownEntriesNone, UnknownEntriesSome},
-    untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, FromDataType},
+    untagged::{BoxDataTypeDowncast, BoxDt, DataTypeWrapper, FromDataType, TypeMap},
 };
 
 #[cfg(not(feature = "ordered"))]
@@ -96,6 +96,24 @@ where
     /// Returns the underlying map and unknown entries.
     pub fn into_inner(self) -> (Map<K, Option<BoxDT>>, Map<K, Option<ValueT>>) {
         (self.inner, self.unknown_entries)
+    }
+
+    /// Returns a [`TypeMap`] for non-`None` entries within this map, discarding
+    /// unknown entries.
+    ///
+    /// [`TypeMap`]: crate::untagged::TypeMap
+    pub fn into_type_map(self) -> TypeMap<K, BoxDT> {
+        let capacity = self.inner.len();
+        self.inner
+            .into_iter()
+            .filter_map(|(k, box_dt_opt)| box_dt_opt.map(move |box_dt| (k, box_dt)))
+            .fold(
+                TypeMap::with_capacity_typed(capacity),
+                |mut type_map, (k, box_dt)| {
+                    type_map.insert_raw(k, box_dt);
+                    type_map
+                },
+            )
     }
 
     /// Returns the entries that were unable to be deserialized.
@@ -599,6 +617,23 @@ three: 3
         let index_map = type_map.into_inner();
 
         assert!(index_map.get("one").is_some());
+    }
+
+    #[test]
+    fn into_type_map() {
+        let mut type_map = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map.insert("one", Some(A(1)));
+        type_map.insert("two", None::<u64>);
+        type_map.insert("three", Some(true));
+
+        let type_map = type_map.into_type_map();
+        let one = type_map.get::<A, _>("one").copied();
+        let two = type_map.contains_key("two");
+        let three = type_map.get::<bool, _>("three").copied();
+
+        assert_eq!(Some(A(1)), one);
+        assert!(!two);
+        assert_eq!(Some(true), three);
     }
 
     #[cfg(not(feature = "debug"))]
