@@ -2,17 +2,13 @@ use std::{
     borrow::Cow,
     fmt,
     hash::Hash,
-    marker::PhantomData,
     ops::{Deref, DerefMut},
 };
 
 use serde::de::DeserializeSeed;
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
-use crate::{
-    common::{UnknownEntries, UnknownEntriesNone},
-    tagged::{DataType, TypeMap, TypeMapVisitor},
-};
+use crate::tagged::{DataType, TypeMap, TypeMapVisitor};
 
 #[cfg(not(feature = "ordered"))]
 use std::collections::HashMap as Map;
@@ -22,12 +18,11 @@ use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
 #[derive(Default)]
-pub struct TypeReg<'key, UnknownEntriesT = UnknownEntriesNone> {
+pub struct TypeReg<'key> {
     fn_seeds: Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>,
-    marker: PhantomData<UnknownEntriesT>,
 }
 
-impl<'key> TypeReg<'key, UnknownEntriesNone> {
+impl<'key> TypeReg<'key> {
     // Creates an empty `TypeReg`.
     ///
     /// The map is initially created with a capacity of 0, so it will not
@@ -42,7 +37,6 @@ impl<'key> TypeReg<'key, UnknownEntriesNone> {
     pub fn new() -> Self {
         Self {
             fn_seeds: Map::new(),
-            marker: PhantomData,
         }
     }
 
@@ -60,12 +54,9 @@ impl<'key> TypeReg<'key, UnknownEntriesNone> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             fn_seeds: Map::with_capacity(capacity),
-            marker: PhantomData,
         }
     }
-}
 
-impl<'key, UnknownEntriesT> TypeReg<'key, UnknownEntriesT> {
     /// Registers a type in this type registry.
     ///
     /// Each type must be registered in this type registry before attempting to
@@ -134,10 +125,7 @@ impl<'key, UnknownEntriesT> TypeReg<'key, UnknownEntriesT> {
     ///
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     /// ```
-    pub fn deserialize_map<'de, MapK, D, E>(
-        &'de self,
-        deserializer: D,
-    ) -> Result<TypeMap<MapK, UnknownEntriesT>, E>
+    pub fn deserialize_map<'de, MapK, D, E>(&'de self, deserializer: D) -> Result<TypeMap<MapK>, E>
     where
         MapK: Eq
             + Hash
@@ -147,7 +135,6 @@ impl<'key, UnknownEntriesT> TypeReg<'key, UnknownEntriesT> {
             + serde::Serialize
             + serde::Deserialize<'de>
             + 'static,
-        UnknownEntriesT: UnknownEntries,
         D: serde::de::Deserializer<'de, Error = E>,
         E: serde::de::Error,
     {
@@ -185,7 +172,7 @@ impl<'key, UnknownEntriesT> TypeReg<'key, UnknownEntriesT> {
     }
 }
 
-impl<'key, UnknownEntriesT> fmt::Debug for TypeReg<'key, UnknownEntriesT> {
+impl<'key> fmt::Debug for TypeReg<'key> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
@@ -199,7 +186,7 @@ impl<'key, UnknownEntriesT> fmt::Debug for TypeReg<'key, UnknownEntriesT> {
     }
 }
 
-impl<'key, UnknownEntriesT> Deref for TypeReg<'key, UnknownEntriesT> {
+impl<'key> Deref for TypeReg<'key> {
     type Target = Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
 
     fn deref(&self) -> &Self::Target {
@@ -207,16 +194,14 @@ impl<'key, UnknownEntriesT> Deref for TypeReg<'key, UnknownEntriesT> {
     }
 }
 
-impl<'key, UnknownEntriesT> DerefMut for TypeReg<'key, UnknownEntriesT> {
+impl<'key> DerefMut for TypeReg<'key> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.fn_seeds
     }
 }
 
 // Used by [`serde_tagged`] to select which [`DeserializeSeed`] function to use.
-impl<'key: 'de, 'de: 'r, 'r, UnknownEntriesT> SeedFactory<'de, Cow<'de, str>>
-    for &'r TypeReg<'key, UnknownEntriesT>
-{
+impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'key> {
     type Seed = &'r BoxFnSeed<Box<dyn DataType>>;
     type Value = Box<dyn DataType>;
 
@@ -251,9 +236,7 @@ impl<'key: 'de, 'de: 'r, 'r, UnknownEntriesT> SeedFactory<'de, Cow<'de, str>>
 
 // Used when [`TypeReg`] is used as the seed to deserialize an arbitrary
 // [`DataType`].
-impl<'key: 'de, 'de: 'r, 'r, UnknownEntriesT> DeserializeSeed<'de>
-    for &'r TypeReg<'key, UnknownEntriesT>
-{
+impl<'key: 'de, 'de: 'r, 'r> DeserializeSeed<'de> for &'r TypeReg<'key> {
     type Value = Box<dyn DataType>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
