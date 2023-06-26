@@ -444,7 +444,7 @@ where
         });
         self.unknown_entries.iter().for_each(|(k, v)| {
             let k = k.clone();
-            let v = v.as_ref().map(|value| value.clone());
+            let v = v.as_ref().cloned();
             type_map_opt.unknown_entries.insert(k, v);
         });
         type_map_opt
