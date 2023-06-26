@@ -4,13 +4,14 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
+use serde::de::DeserializeOwned;
 use serde_tagged::de::{BoxFnSeed, SeedFactory};
 
 use crate::{
     common::{UnknownEntriesNone, UnknownEntriesSome},
     untagged::{
         BoxDt, DataType, DataTypeWrapper, FromDataType, TypeMap, TypeMapOpt, TypeMapOptVisitor,
-        TypeMapVisitor, UnknownEntriesSomeFnSeed,
+        TypeMapVisitor,
     },
 };
 
@@ -21,16 +22,15 @@ use std::collections::HashMap as Map;
 use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
-pub struct TypeReg<K, BoxDT = BoxDt, UnknownEntriesT = UnknownEntriesNone>
+pub struct TypeReg<K, BoxDT = BoxDt>
 where
     K: Eq + Hash + Debug,
 {
     fn_seeds: Map<K, BoxFnSeed<BoxDT>>,
     fn_opt_seeds: Map<K, BoxFnSeed<Option<BoxDT>>>,
-    unknown_entries: UnknownEntriesT,
 }
 
-impl<K> TypeReg<K, BoxDt, UnknownEntriesNone>
+impl<K> TypeReg<K, BoxDt>
 where
     K: Eq + Hash + Debug,
 {
@@ -49,7 +49,6 @@ where
         Self {
             fn_seeds: Map::new(),
             fn_opt_seeds: Map::new(),
-            unknown_entries: UnknownEntriesNone,
         }
     }
 
@@ -68,12 +67,11 @@ where
         Self {
             fn_seeds: Map::with_capacity(capacity),
             fn_opt_seeds: Map::with_capacity(capacity),
-            unknown_entries: UnknownEntriesNone,
         }
     }
 }
 
-impl<K, BoxDT> TypeReg<K, BoxDT, UnknownEntriesNone>
+impl<K, BoxDT> TypeReg<K, BoxDT>
 where
     K: Clone + Debug + Eq + Hash + 'static,
     BoxDT: DataTypeWrapper + 'static,
@@ -93,7 +91,6 @@ where
         Self {
             fn_seeds: Map::new(),
             fn_opt_seeds: Map::new(),
-            unknown_entries: UnknownEntriesNone,
         }
     }
 
@@ -112,39 +109,6 @@ where
         Self {
             fn_seeds: Map::with_capacity(capacity),
             fn_opt_seeds: Map::with_capacity(capacity),
-            unknown_entries: UnknownEntriesNone,
-        }
-    }
-
-    /// Specifies the type to use to deserialize unregistered values.
-    ///
-    /// This should be the generic `Value` type of your serialization format,
-    /// e.g. `serde_yaml::Value` if you are deserializing from YAML, or
-    /// `serde_json::Value` if you are deserializing JSON.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use type_reg::untagged::TypeReg;
-    /// let type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
-    /// ```
-    pub fn with_unknown_entries<ValueT>(self) -> TypeReg<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>
-    where
-        ValueT: serde::de::DeserializeOwned + 'static,
-    {
-        let Self {
-            fn_seeds,
-            fn_opt_seeds,
-            unknown_entries: UnknownEntriesNone,
-        } = self;
-
-        TypeReg {
-            fn_seeds,
-            fn_opt_seeds,
-            unknown_entries: UnknownEntriesSomeFnSeed::new(
-                BoxFnSeed::new(Self::deserialize_value::<ValueT>),
-                BoxFnSeed::new(Self::deserialize_opt_value::<ValueT>),
-            ),
         }
     }
 
@@ -166,14 +130,7 @@ where
         use serde::Deserialize;
         Option::<ValueT>::deserialize(deserializer)
     }
-}
 
-impl<K, BoxDT, UnknownEntriesT> TypeReg<K, BoxDT, UnknownEntriesT>
-where
-    K: Clone + Debug + Eq + Hash + 'static,
-    BoxDT: DataTypeWrapper + 'static,
-    UnknownEntriesT: 'static,
-{
     /// Registers a type in this type registry.
     ///
     /// Each type must be registered in this type registry before attempting to
@@ -229,13 +186,7 @@ where
         use serde::de::Deserialize;
         Ok(Option::<R>::deserialize(deserializer)?.map(<BoxDT as FromDataType<R>>::from))
     }
-}
 
-impl<K, BoxDT> TypeReg<K, BoxDT, UnknownEntriesNone>
-where
-    K: Eq + Hash + Debug,
-    BoxDT: DataTypeWrapper + 'static,
-{
     /// Deserializes a map of arbitrary values into a [`TypeMap`].
     ///
     /// Each type must be registered in this type registry before attempting to
@@ -264,10 +215,7 @@ where
     ///
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     /// ```
-    pub fn deserialize_map<'de, D, E>(
-        &'de self,
-        deserializer: D,
-    ) -> Result<TypeMap<K, BoxDT, UnknownEntriesNone>, E>
+    pub fn deserialize_map<'de, D, E>(&'de self, deserializer: D) -> Result<TypeMap<K, BoxDT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,
@@ -309,7 +257,7 @@ where
     pub fn deserialize_map_opt<'de, D, E>(
         &'de self,
         deserializer: D,
-    ) -> Result<TypeMapOpt<K, BoxDT, UnknownEntriesNone>, E>
+    ) -> Result<TypeMapOpt<K, BoxDT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,
@@ -395,14 +343,7 @@ where
 
         serde::de::Error::custom(message)
     }
-}
 
-impl<K, BoxDT, ValueT> TypeReg<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>
-where
-    K: Clone + Eq + Hash + Debug,
-    BoxDT: DataTypeWrapper + 'static,
-    ValueT: Clone + Debug + Eq,
-{
     /// Deserializes a map of arbitrary values into a [`TypeMap`].
     ///
     /// Each type must be registered in this type registry before attempting to
@@ -413,7 +354,7 @@ where
     /// ```rust
     /// use type_reg::untagged::{TypeMap, TypeReg};
     ///
-    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+    /// let mut type_reg = TypeReg::<String>::new();
     /// type_reg.register::<u32>(String::from("one"));
     /// type_reg.register::<u64>(String::from("two"));
     ///
@@ -426,7 +367,9 @@ where
     ///     ",
     /// );
     ///
-    /// let type_map: TypeMap<String, _, _> = type_reg.deserialize_map(deserializer).unwrap();
+    /// let type_map: TypeMap<String, _, _> = type_reg
+    ///     .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+    ///     .unwrap();
     /// let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();
     /// let data_u64 = type_map.get::<u64, _>("two").copied().unwrap();
     ///
@@ -437,16 +380,20 @@ where
     ///     type_map.get_unknown_entry("three").cloned(),
     /// );
     /// ```
-    pub fn deserialize_map<'de, D, E>(
+    pub fn deserialize_map_with_unknowns<'de, ValueT, D, E>(
         &'de self,
         deserializer: D,
     ) -> Result<TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>, E>
     where
-        K: serde::de::Deserialize<'de> + 'de,
+        K: serde::de::Deserialize<'de> + 'de + 'static,
+        ValueT: Clone + Debug + Eq + DeserializeOwned + 'static,
         D: serde::de::Deserializer<'de, Error = E>,
         E: serde::de::Error,
     {
-        let visitor = TypeMapVisitor::<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>::new(self);
+        let visitor = TypeMapVisitor::<K, BoxDT, BoxFnSeed<ValueT>>::new(
+            self,
+            BoxFnSeed::new(Self::deserialize_value::<ValueT>),
+        );
         deserializer.deserialize_map(visitor)
     }
 
@@ -460,7 +407,7 @@ where
     /// ```rust
     /// use type_reg::untagged::{TypeMapOpt, TypeReg};
     ///
-    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+    /// let mut type_reg = TypeReg::<String>::new();
     /// type_reg.register::<u32>(String::from("one"));
     /// type_reg.register::<u64>(String::from("two"));
     ///
@@ -473,8 +420,9 @@ where
     ///     ",
     /// );
     ///
-    /// let type_map_opt: TypeMapOpt<String, _, _> =
-    ///     type_reg.deserialize_map_opt(deserializer).unwrap();
+    /// let type_map_opt: TypeMapOpt<String, _, _> = type_reg
+    ///     .deserialize_map_opt_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+    ///     .unwrap();
     /// let data_u32 = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
     /// let data_u64 = type_map_opt.get::<u64, _>("two").map(|two| two.copied());
     ///
@@ -490,47 +438,21 @@ where
     ///         .map(|three| three.cloned()),
     /// );
     /// ```
-    pub fn deserialize_map_opt<'de, D, E>(
+    pub fn deserialize_map_opt_with_unknowns<'de, ValueT, D, E>(
         &'de self,
         deserializer: D,
     ) -> Result<TypeMapOpt<K, BoxDT, UnknownEntriesSome<ValueT>>, E>
     where
-        K: serde::de::Deserialize<'de> + 'de,
+        K: serde::de::Deserialize<'de> + 'de + 'static,
+        ValueT: Clone + Debug + Eq + DeserializeOwned + 'static,
         D: serde::de::Deserializer<'de, Error = E>,
         E: serde::de::Error,
     {
-        let visitor = TypeMapOptVisitor::<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>::new(self);
+        let visitor = TypeMapOptVisitor::<K, BoxDT, BoxFnSeed<Option<ValueT>>>::new(
+            self,
+            BoxFnSeed::new(Self::deserialize_opt_value::<ValueT>),
+        );
         deserializer.deserialize_map(visitor)
-    }
-
-    /// Deserializes an arbitrary value into a [`DataType`].
-    ///
-    /// Each type must be registered in this type registry before attempting to
-    /// deserialize the type.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use type_reg::untagged::TypeReg;
-    ///
-    /// let mut type_reg = TypeReg::<String>::new();
-    /// type_reg.register::<u32>(String::from("one"));
-    ///
-    /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str("one: 1");
-    ///
-    /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
-    /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
-    ///
-    /// println!("{data_u32:?}"); // prints "1"
-    /// ```
-    pub fn deserialize_single<'de, D, E>(&self, deserializer: D) -> Result<BoxDT, E>
-    where
-        K: serde::de::Deserialize<'de> + 'de,
-        D: serde::de::Deserializer<'de, Error = E>,
-        E: serde::de::Error,
-    {
-        serde_tagged::de::external::deserialize(deserializer, self)
     }
 
     pub(crate) fn deserialize_seed_opt(&self, type_key: &K) -> Option<&BoxFnSeed<BoxDT>> {
@@ -543,17 +465,9 @@ where
     ) -> Option<&BoxFnSeed<Option<BoxDT>>> {
         self.fn_opt_seeds.get(type_key)
     }
-
-    pub(crate) fn value_deserialize_seed(&self) -> &BoxFnSeed<ValueT> {
-        self.unknown_entries.fn_seed()
-    }
-
-    pub(crate) fn value_deserialize_opt_seed(&self) -> &BoxFnSeed<Option<ValueT>> {
-        self.unknown_entries.fn_opt_seed()
-    }
 }
 
-impl<K, BoxDT> Default for TypeReg<K, BoxDT, UnknownEntriesNone>
+impl<K, BoxDT> Default for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + Debug,
 {
@@ -561,12 +475,11 @@ where
         Self {
             fn_seeds: Map::default(),
             fn_opt_seeds: Map::default(),
-            unknown_entries: UnknownEntriesNone,
         }
     }
 }
 
-impl<K, BoxDT, UnknownEntriesT> Debug for TypeReg<K, BoxDT, UnknownEntriesT>
+impl<K, BoxDT> Debug for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + Debug,
 {
@@ -583,7 +496,7 @@ where
     }
 }
 
-impl<K, BoxDT, UnknownEntriesT> Deref for TypeReg<K, BoxDT, UnknownEntriesT>
+impl<K, BoxDT> Deref for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + Debug,
 {
@@ -594,7 +507,7 @@ where
     }
 }
 
-impl<K, BoxDT, UnknownEntriesT> DerefMut for TypeReg<K, BoxDT, UnknownEntriesT>
+impl<K, BoxDT> DerefMut for TypeReg<K, BoxDT>
 where
     K: Eq + Hash + Debug,
 {
@@ -604,9 +517,9 @@ where
 }
 
 // Used by [`serde_tagged`] to select which [`DeserializeSeed`] function to use.
-impl<'r, 'de, K, BoxDT> SeedFactory<'de, K> for &'r TypeReg<K, BoxDT, UnknownEntriesNone>
+impl<'r, 'de, K, BoxDT> SeedFactory<'de, K> for &'r TypeReg<K, BoxDT>
 where
-    K: Eq + Hash + Debug + 'de,
+    K: Clone + Eq + Hash + Debug + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
 {
     type Seed = &'r BoxFnSeed<BoxDT>;
@@ -617,45 +530,6 @@ where
         E: serde::de::Error,
     {
         self.deserialize_seed(&type_key)
-    }
-}
-
-impl<'r, 'de, K, BoxDT, ValueT> SeedFactory<'de, K>
-    for &'r TypeReg<K, BoxDT, UnknownEntriesSomeFnSeed<ValueT>>
-where
-    K: Clone + Eq + Hash + Debug + 'de,
-    BoxDT: DataTypeWrapper + 'static,
-    ValueT: Clone + Debug + Eq,
-{
-    type Seed = &'r BoxFnSeed<BoxDT>;
-    type Value = BoxDT;
-
-    fn seed<E>(self, type_key: K) -> Result<Self::Seed, E>
-    where
-        E: serde::de::Error,
-    {
-        self.deserialize_seed_opt(&type_key).ok_or_else(|| {
-            use std::fmt::Write;
-            let mut message = String::with_capacity(256);
-            write!(
-                message,
-                "Type key `{type_key:?}` not registered in type registry."
-            )
-            .expect("Failed to write error message");
-
-            message.push_str("\nAvailable types are:\n\n");
-            let mut message = self
-                .fn_seeds
-                .keys()
-                .try_fold(message, |mut message, key| {
-                    writeln!(message, "- {key:?}")?;
-                    Result::<_, fmt::Error>::Ok(message)
-                })
-                .expect("Failed to write error message");
-            message.push('\n');
-
-            serde::de::Error::custom(message)
-        })
     }
 }
 
@@ -727,7 +601,7 @@ Available types are:
 
     #[test]
     fn deserialize_map_with_unknown_entries_yaml() {
-        let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+        let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
 
@@ -738,7 +612,9 @@ Available types are:
         ";
 
         let deserializer = serde_yaml::Deserializer::from_str(serialized);
-        let type_map = type_reg.deserialize_map(deserializer).unwrap();
+        let type_map = type_reg
+            .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+            .unwrap();
 
         let data_u32 = type_map.get::<u32, _>("one").copied();
         let data_u64 = type_map.get_unknown_entry("two").cloned();
@@ -756,7 +632,7 @@ Available types are:
 
     #[test]
     fn deserialize_map_with_unknown_entries_json() {
-        let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_json::Value>();
+        let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
 
@@ -769,7 +645,9 @@ Available types are:
         "#;
 
         let mut deserializer = serde_json::Deserializer::from_str(serialized);
-        let type_map = type_reg.deserialize_map(&mut deserializer).unwrap();
+        let type_map = type_reg
+            .deserialize_map_with_unknowns::<'_, serde_json::Value, _, _>(&mut deserializer)
+            .unwrap();
 
         let data_u32 = type_map.get::<u32, _>("one").copied();
         let data_u64 = type_map.get_unknown_entry("two").cloned();
@@ -787,7 +665,7 @@ Available types are:
 
     #[test]
     fn deserialize_map_opt_with_unknown_entries_yaml() {
-        let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+        let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
         type_reg.register::<u8>(String::from("four"));
@@ -801,7 +679,9 @@ Available types are:
         ";
 
         let deserializer = serde_yaml::Deserializer::from_str(serialized);
-        let type_map_opt = type_reg.deserialize_map_opt(deserializer).unwrap();
+        let type_map_opt = type_reg
+            .deserialize_map_opt_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+            .unwrap();
 
         let one = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
         let two = type_map_opt
@@ -831,7 +711,7 @@ Available types are:
 
     #[test]
     fn deserialize_map_opt_with_unknown_entries_json() {
-        let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_json::Value>();
+        let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
         type_reg.register::<u8>(String::from("four"));
@@ -847,7 +727,9 @@ Available types are:
         "#;
 
         let mut deserializer = serde_json::Deserializer::from_str(serialized);
-        let type_map_opt = type_reg.deserialize_map_opt(&mut deserializer).unwrap();
+        let type_map_opt = type_reg
+            .deserialize_map_opt_with_unknowns::<'_, serde_json::Value, _, _>(&mut deserializer)
+            .unwrap();
 
         let one = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
         let two = type_map_opt

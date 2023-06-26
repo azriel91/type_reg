@@ -119,10 +119,12 @@ where
     /// ```rust
     /// use type_reg::untagged::{TypeMap, TypeReg};
     ///
-    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_yaml::Value>();
+    /// let mut type_reg = TypeReg::<String>::new();
     ///
     /// let type_map = type_reg
-    ///     .deserialize_map(serde_yaml::Deserializer::from_str("one: 1"))
+    ///     .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(
+    ///         serde_yaml::Deserializer::from_str("one: 1"),
+    ///     )
     ///     .unwrap();
     ///
     /// let one = type_map.get_unknown_entry("one").cloned();
@@ -139,10 +141,12 @@ where
     /// ```rust
     /// use type_reg::untagged::{TypeMap, TypeReg};
     ///
-    /// let mut type_reg = TypeReg::<String>::new().with_unknown_entries::<serde_json::Value>();
+    /// let mut type_reg = TypeReg::<String>::new();
     ///
     /// let type_map = type_reg
-    ///     .deserialize_map(&mut serde_json::Deserializer::from_str(r#"{ "one": 1 }"#))
+    ///     .deserialize_map_with_unknowns::<'_, serde_json::Value, _, _>(
+    ///         &mut serde_json::Deserializer::from_str(r#"{ "one": 1 }"#),
+    ///     )
     ///     .unwrap();
     ///
     /// let one = type_map.get_unknown_entry("one").cloned();
