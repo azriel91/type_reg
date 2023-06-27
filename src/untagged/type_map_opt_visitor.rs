@@ -1,16 +1,13 @@
-use std::{
-    fmt::{self, Debug},
-    hash::Hash,
-};
+use std::{fmt, hash::Hash};
 
 use serde_tagged::de::BoxFnSeed;
 
 use crate::{
     common::{UnknownEntriesNone, UnknownEntriesSome},
-    untagged::{DataTypeWrapper, TypeMap, TypeReg},
+    untagged::{DataTypeWrapper, TypeMapOpt, TypeReg},
 };
 
-/// A visitor that can be used to deserialize a map of untagged values.
+/// A visitor that can be used to deserialize a map of untagged optional values.
 ///
 /// This visitor handles an externally tagged value, which is represented by a
 /// map containing a single entry, where the key is the tag and the value is the
@@ -22,47 +19,57 @@ use crate::{
 /// going to be deserialized.
 ///
 /// [`DeserializeSeed`]: serde::de::DeserializeSeed
-pub struct TypeMapVisitor<'r, K, BoxDT, UnknownEntriesFn>
+pub struct TypeMapOptVisitor<'r, K, BoxDT, UnknownEntriesFn>
 where
-    K: Clone + Debug + Eq + Hash,
+    K: Clone + Eq + Hash + fmt::Debug,
 {
     type_reg: &'r TypeReg<K, BoxDT>,
-    /// Function to deserialize an arbitrary value.
-    fn_seed: UnknownEntriesFn,
+    /// Function to deserialize an arbitrary optional value.
+    fn_opt_seed: UnknownEntriesFn,
 }
 
-impl<'r, K, BoxDT> TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
+impl<'r, K, BoxDT> TypeMapOptVisitor<'r, K, BoxDT, UnknownEntriesNone>
 where
-    K: Clone + Debug + Eq + Hash,
+    K: Clone + Eq + Hash + fmt::Debug,
 {
     /// Creates a new visitor with the given [`TypeReg`].
     pub fn new(type_reg: &'r TypeReg<K, BoxDT>) -> Self {
-        TypeMapVisitor {
+        TypeMapOptVisitor {
             type_reg,
-            fn_seed: UnknownEntriesNone,
+            fn_opt_seed: UnknownEntriesNone,
         }
     }
 }
 
-impl<'r, K, BoxDT, ValueT> TypeMapVisitor<'r, K, BoxDT, BoxFnSeed<ValueT>>
+impl<
+    'r,
+    K,
+    BoxDT,
+    #[cfg(not(feature = "debug"))] ValueT,
+    #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
+> TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
 where
-    K: Clone + Debug + Eq + Hash,
-    ValueT: Clone + Debug + Eq,
+    K: Clone + Eq + Hash + fmt::Debug,
+    ValueT: Clone + Eq,
 {
     /// Creates a new visitor with the given [`TypeReg`].
-    pub fn new(type_reg: &'r TypeReg<K, BoxDT>, fn_seed: BoxFnSeed<ValueT>) -> Self {
-        TypeMapVisitor { type_reg, fn_seed }
+    pub fn new(type_reg: &'r TypeReg<K, BoxDT>, fn_opt_seed: BoxFnSeed<Option<ValueT>>) -> Self {
+        TypeMapOptVisitor {
+            type_reg,
+            fn_opt_seed,
+        }
     }
 }
 
 impl<'r: 'de, 'de, K, BoxDT> serde::de::Visitor<'de>
-    for TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
+    for TypeMapOptVisitor<'r, K, BoxDT, UnknownEntriesNone>
 where
-    K: Clone + Debug + Eq + Hash + serde::Deserialize<'de> + 'de + 'static,
+    K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
 {
-    type Value = TypeMap<K, BoxDT>;
+    type Value = TypeMapOpt<K, BoxDT, UnknownEntriesNone>;
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "a map of arbitrary data types")
     }
@@ -72,12 +79,12 @@ where
         A: serde::de::MapAccess<'de>,
     {
         let mut type_map = match map_access.size_hint() {
-            Some(n) => TypeMap::with_capacity_typed(n),
-            _ => TypeMap::new_typed(),
+            Some(n) => TypeMapOpt::with_capacity_typed(n),
+            _ => TypeMapOpt::new_typed(),
         };
 
         while let Some(key) = map_access.next_key::<K>()? {
-            let value = map_access.next_value_seed(self.type_reg.deserialize_seed(&key)?)?;
+            let value = map_access.next_value_seed(self.type_reg.deserialize_opt_seed(&key)?)?;
             type_map.insert_raw(key, value);
         }
 
@@ -86,14 +93,15 @@ where
 }
 
 impl<'r: 'de, 'de, K, BoxDT, ValueT> serde::de::Visitor<'de>
-    for TypeMapVisitor<'r, K, BoxDT, BoxFnSeed<ValueT>>
+    for TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
 where
-    K: Clone + Debug + Eq + Hash + serde::Deserialize<'de> + 'de + 'static,
+    K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
-    ValueT: Clone + Debug + Eq,
+    ValueT: Clone + fmt::Debug + Eq,
 {
-    type Value = TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>;
+    type Value = TypeMapOpt<K, BoxDT, UnknownEntriesSome<ValueT>>;
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "a map of arbitrary data types")
     }
@@ -103,18 +111,18 @@ where
         A: serde::de::MapAccess<'de>,
     {
         let mut type_map = match map_access.size_hint() {
-            Some(n) => TypeMap::with_capacity_typed(n),
-            _ => TypeMap::new_typed(),
+            Some(n) => TypeMapOpt::with_capacity_typed(n),
+            _ => TypeMapOpt::new_typed(),
         };
 
         while let Some(key) = map_access.next_key::<K>()? {
-            match self.type_reg.deserialize_seed_opt(&key) {
-                Some(deserialize_seed) => {
-                    let value = map_access.next_value_seed(deserialize_seed)?;
+            match self.type_reg.deserialize_opt_seed_opt(&key) {
+                Some(deserialize_opt_seed) => {
+                    let value = map_access.next_value_seed(deserialize_opt_seed)?;
                     type_map.insert_raw(key, value);
                 }
                 None => {
-                    let value = map_access.next_value_seed(&self.fn_seed)?;
+                    let value = map_access.next_value_seed(&self.fn_opt_seed)?;
                     type_map.insert_unknown_entry(key, value);
                 }
             }

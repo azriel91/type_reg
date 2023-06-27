@@ -1,3 +1,5 @@
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
+
 //! Serializable map of any type.
 //!
 //! This library provides a map that can store any serializable type, and
@@ -150,6 +152,8 @@
 //! }
 //! ```
 
+#[cfg(any(feature = "tagged", feature = "untagged"))]
+pub mod common;
 #[cfg(feature = "tagged")]
 pub mod tagged;
 #[cfg(feature = "untagged")]

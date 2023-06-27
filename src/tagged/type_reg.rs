@@ -18,7 +18,9 @@ use indexmap::IndexMap as Map;
 
 /// Map from a given key to logic to deserialize a type.
 #[derive(Default)]
-pub struct TypeReg<'key>(Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>);
+pub struct TypeReg<'key> {
+    fn_seeds: Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>,
+}
 
 impl<'key> TypeReg<'key> {
     // Creates an empty `TypeReg`.
@@ -33,7 +35,9 @@ impl<'key> TypeReg<'key> {
     /// let mut type_reg = TypeReg::new();
     /// ```
     pub fn new() -> Self {
-        Self(Map::new())
+        Self {
+            fn_seeds: Map::new(),
+        }
     }
 
     /// Creates an empty `TypeReg` with the specified capacity.
@@ -48,7 +52,9 @@ impl<'key> TypeReg<'key> {
     /// let type_reg = TypeReg::with_capacity(10);
     /// ```
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(Map::with_capacity(capacity))
+        Self {
+            fn_seeds: Map::with_capacity(capacity),
+        }
     }
 
     /// Registers a type in this type registry.
@@ -85,7 +91,7 @@ impl<'key> TypeReg<'key> {
             Ok(Box::new(R::deserialize(deserializer)?))
         }
 
-        self.0.insert(
+        self.fn_seeds.insert(
             Cow::Borrowed(std::any::type_name::<R>()),
             BoxFnSeed::new(deserialize::<R>),
         );
@@ -171,7 +177,7 @@ impl<'key> fmt::Debug for TypeReg<'key> {
         let mut debug_map = f.debug_map();
 
         // BoxFnSeed is `!Debug`, so we just use "..".
-        self.0.keys().for_each(|k| {
+        self.fn_seeds.keys().for_each(|k| {
             debug_map.key(&k);
             debug_map.value(&"..");
         });
@@ -184,13 +190,13 @@ impl<'key> Deref for TypeReg<'key> {
     type Target = Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.fn_seeds
     }
 }
 
 impl<'key> DerefMut for TypeReg<'key> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.fn_seeds
     }
 }
 
@@ -203,7 +209,7 @@ impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'ke
     where
         E: serde::de::Error,
     {
-        self.0.get(&type_tag).ok_or_else(|| {
+        self.fn_seeds.get(&type_tag).ok_or_else(|| {
             use std::fmt::Write;
             let mut message = String::with_capacity(256);
             write!(
@@ -214,7 +220,7 @@ impl<'key: 'de, 'de: 'r, 'r> SeedFactory<'de, Cow<'de, str>> for &'r TypeReg<'ke
 
             message.push_str("\nAvailable types are:\n\n");
             let mut message = self
-                .0
+                .fn_seeds
                 .keys()
                 .try_fold(message, |mut message, key| {
                     writeln!(message, "- {key:?}")?;
@@ -309,7 +315,7 @@ Available types are:
 
     #[test]
     fn with_capacity() {
-        let type_reg = TypeReg::default();
+        let type_reg = TypeReg::new();
         assert_eq!(0, type_reg.capacity());
 
         let type_reg = TypeReg::with_capacity(5);

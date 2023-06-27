@@ -47,8 +47,8 @@
 pub use self::{
     box_data_type_downcast::BoxDataTypeDowncast, box_dt::BoxDt, box_dt_display::BoxDtDisplay,
     data_type::DataType, data_type_display::DataTypeDisplay, data_type_wrapper::DataTypeWrapper,
-    from_data_type::FromDataType, type_map::TypeMap, type_map_visitor::TypeMapVisitor,
-    type_reg::TypeReg,
+    from_data_type::FromDataType, type_map::TypeMap, type_map_opt::TypeMapOpt,
+    type_map_opt_visitor::TypeMapOptVisitor, type_map_visitor::TypeMapVisitor, type_reg::TypeReg,
 };
 
 mod box_data_type_downcast;
@@ -59,5 +59,7 @@ mod data_type_display;
 mod data_type_wrapper;
 mod from_data_type;
 mod type_map;
+mod type_map_opt;
+mod type_map_opt_visitor;
 mod type_map_visitor;
 mod type_reg;

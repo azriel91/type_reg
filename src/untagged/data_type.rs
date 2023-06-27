@@ -112,3 +112,24 @@ impl<'a> serde::Serialize for dyn DataType + 'a {
         erased_serde::serialize(self, serializer)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::any::TypeId;
+
+    use super::DataType;
+
+    #[test]
+    fn type_id_inner_matches_inner_type_type_id() {
+        let n = 1u32;
+
+        assert_eq!(TypeId::of::<u32>(), DataType::type_id_inner(&n));
+    }
+
+    #[test]
+    fn type_id_inner_matches_box_inner_type_type_id() {
+        let n = Box::new(1u32);
+
+        assert_eq!(TypeId::of::<u32>(), DataType::type_id_inner(n.as_ref()));
+    }
+}
