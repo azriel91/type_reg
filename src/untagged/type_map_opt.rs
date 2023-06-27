@@ -308,7 +308,6 @@ where
     ///             .map(|one| **one += 1);
     ///     });
     /// assert_eq!(Some(Some(&mut 2)), one_plus_one_opt);
-    #[cfg(feature = "debug")]
     pub fn get_mut<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug, Q>(
         &mut self,
         q: &Q,
@@ -402,7 +401,6 @@ where
     /// If the map did have this key present, the value is updated, and the old
     /// value is returned. The key is not updated, though; this matters for
     /// types that can be `==` without being identical.
-    #[cfg(feature = "debug")]
     pub fn insert<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug>(
         &mut self,
         k: K,
@@ -587,12 +585,13 @@ mod tests {
     #[cfg(feature = "ordered")]
     #[test]
     fn serialize() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(1u32));
-        type_map.insert("two", None::<u64>);
-        type_map.insert("three", Some(A(3)));
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(1u32));
+        type_map_opt.insert("two", None::<u64>);
+        type_map_opt.insert("three", Some(A(3)));
 
-        let serialized = serde_yaml::to_string(&type_map).expect("Failed to serialize `type_map`.");
+        let serialized =
+            serde_yaml::to_string(&type_map_opt).expect("Failed to serialize `type_map_opt`.");
         let expected = r#"one: 1
 two: null
 three: 3
@@ -603,49 +602,49 @@ three: 3
 
     #[test]
     fn clone() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
 
-        let mut type_map_clone = type_map.clone();
-        type_map_clone.insert("one", Some(A(2)));
+        let mut type_map_opt_clone = type_map_opt.clone();
+        type_map_opt_clone.insert("one", Some(A(2)));
 
-        assert_eq!(Some(Some(&A(1))), type_map.get("one"));
-        assert_eq!(Some(Some(&A(2))), type_map_clone.get("one"));
+        assert_eq!(Some(Some(&A(1))), type_map_opt.get("one"));
+        assert_eq!(Some(Some(&A(2))), type_map_opt_clone.get("one"));
     }
 
     #[test]
     fn into_inner() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
 
-        let index_map = type_map.into_inner();
+        let index_map = type_map_opt.into_inner();
 
         assert!(index_map.get("one").is_some());
     }
 
     #[test]
     fn into_type_map() {
-        let mut type_map = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
-        type_map.insert("three", Some(true));
+        let mut type_map_opt = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
+        type_map_opt.insert("three", Some(true));
 
-        let type_map = type_map.into_type_map();
-        let one = type_map.get::<A, _>("one").copied();
-        let two = type_map.contains_key("two");
-        let three = type_map.get::<bool, _>("three").copied();
+        let type_map_opt = type_map_opt.into_type_map();
+        let one = type_map_opt.get::<A, _>("one").copied();
+        let two = type_map_opt.contains_key("two");
+        let three = type_map_opt.get::<bool, _>("three").copied();
 
         assert_eq!(Some(A(1)), one);
         assert!(!two);
         assert_eq!(Some(true), three);
     }
 
-    #[cfg(not(feature = "debug"))]
+    #[cfg(all(feature = "ordered", not(feature = "debug")))]
     #[test]
     fn debug() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
         assert_eq!(
             "{\
@@ -653,18 +652,18 @@ three: 3
                     type: \"type_reg::untagged::type_map_opt::tests::A\", \
                     value: \"..\" \
                 }), \
-                \"two\": None \
+                \"two\": None\
             }",
-            format!("{type_map:?}")
+            format!("{type_map_opt:?}")
         );
     }
 
-    #[cfg(not(feature = "debug"))]
+    #[cfg(all(feature = "ordered", not(feature = "debug")))]
     #[test]
     fn debug_with_unknown_entries_some() {
-        let mut type_map = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
         assert_eq!(
             "TypeMapOpt { \
@@ -673,36 +672,36 @@ three: 3
                         type: \"type_reg::untagged::type_map_opt::tests::A\", \
                         value: \"..\" \
                     }), \
-                    \"two\": None \
+                    \"two\": None\
                 }, \
                 unknown_entries: {} \
             }",
-            format!("{type_map:?}")
+            format!("{type_map_opt:?}")
         );
     }
 
     #[cfg(feature = "debug")]
     #[test]
     fn debug() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
         assert_eq!(
             "{\
                 \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
                 \"two\": None\
             }",
-            format!("{type_map:?}")
+            format!("{type_map_opt:?}")
         );
     }
 
     #[cfg(feature = "debug")]
     #[test]
     fn debug_with_unknown_entries_some() {
-        let mut type_map = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
         assert_eq!(
             "TypeMapOpt { \
@@ -712,17 +711,17 @@ three: 3
                 }, \
                 unknown_entries: {} \
             }",
-            format!("{type_map:?}")
+            format!("{type_map_opt:?}")
         );
     }
 
     #[test]
     fn into_inner_unknown_entries_none() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
-        let mut inner = type_map.into_inner();
+        let mut inner = type_map_opt.into_inner();
         let one = inner.get_mut("one").map(|box_dt_opt| {
             box_dt_opt
                 .as_mut()
@@ -742,11 +741,11 @@ three: 3
 
     #[test]
     fn into_inner_unknown_entries_some() {
-        let mut type_map = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::<&'static str, BoxDt, UnknownEntriesSome<()>>::default();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", None::<u64>);
 
-        let (mut inner, unknown_entries) = type_map.into_inner();
+        let (mut inner, unknown_entries) = type_map_opt.into_inner();
         let one = inner.get_mut("one").map(|box_dt_opt| {
             box_dt_opt
                 .as_mut()
@@ -767,21 +766,21 @@ three: 3
 
     #[test]
     fn get_mut() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
-        type_map.insert("two", Some(ADisplay(2)));
-        type_map.insert("three", None::<u64>);
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert("two", Some(ADisplay(2)));
+        type_map_opt.insert("three", None::<u64>);
 
-        let one = type_map
+        let one = type_map_opt
             .get_mut::<A, _>("one")
             .map(Option::<&mut _>::copied);
-        let two = type_map
+        let two = type_map_opt
             .get_mut::<ADisplay, _>("two")
             .map(Option::<&mut _>::copied);
-        let three = type_map
+        let three = type_map_opt
             .get_mut::<u64, _>("three")
             .map(Option::<&mut _>::copied);
-        let four = type_map
+        let four = type_map_opt
             .get_mut::<u32, _>("four")
             .map(Option::<&mut _>::copied);
 
@@ -793,9 +792,9 @@ three: 3
 
     #[test]
     fn get_raw() {
-        let mut type_map = TypeMapOpt::<&'static str>::new();
-        type_map.insert("one", Some(1u32));
-        let boxed_one_opt = type_map.get_raw("one");
+        let mut type_map_opt = TypeMapOpt::<&'static str>::new();
+        type_map_opt.insert("one", Some(1u32));
+        let boxed_one_opt = type_map_opt.get_raw("one");
 
         let one = boxed_one_opt.map(|boxed_one| {
             boxed_one
@@ -808,10 +807,10 @@ three: 3
 
     #[test]
     fn get_raw_mut() {
-        let mut type_map = TypeMapOpt::<&'static str>::new();
-        type_map.insert("one", Some(1u32));
+        let mut type_map_opt = TypeMapOpt::<&'static str>::new();
+        type_map_opt.insert("one", Some(1u32));
 
-        let boxed_one_opt = type_map.get_raw_mut("one");
+        let boxed_one_opt = type_map_opt.get_raw_mut("one");
         let one = boxed_one_opt
             .map(|boxed_one| boxed_one.and_then(BoxDataTypeDowncast::<u32>::downcast_mut));
         assert_eq!(Some(Some(1).as_mut()), one);
@@ -820,7 +819,7 @@ three: 3
             *one += 1;
         }
 
-        let one_plus_one = type_map
+        let one_plus_one = type_map_opt
             .get::<u32, _>("one")
             .map(|one_plus_one| one_plus_one.copied());
         assert_eq!(Some(Some(2)), one_plus_one);
@@ -828,25 +827,25 @@ three: 3
 
     #[test]
     fn with_capacity() {
-        let type_map = TypeMapOpt::<&str>::default();
-        assert_eq!(0, type_map.capacity());
+        let type_map_opt = TypeMapOpt::<&str>::default();
+        assert_eq!(0, type_map_opt.capacity());
 
-        let type_map = TypeMapOpt::<&str>::with_capacity(5);
-        assert!(type_map.capacity() >= 5);
+        let type_map_opt = TypeMapOpt::<&str>::with_capacity(5);
+        assert!(type_map_opt.capacity() >= 5);
     }
 
     #[test]
     fn deref_mut() {
-        let mut type_map = TypeMapOpt::new();
-        type_map.insert("one", Some(A(1)));
+        let mut type_map_opt = TypeMapOpt::new();
+        type_map_opt.insert("one", Some(A(1)));
 
-        if let Some(Some(v)) = type_map.values_mut().next() {
+        if let Some(Some(v)) = type_map_opt.values_mut().next() {
             if let Some(a) = BoxDataTypeDowncast::<A>::downcast_mut(v) {
                 a.0 = 2;
             }
         };
 
-        let one_plus_one = type_map
+        let one_plus_one = type_map_opt
             .get::<A, _>("one")
             .map(|one_plus_one| one_plus_one.copied());
         assert_eq!(Some(Some(A(2))), one_plus_one);
@@ -854,17 +853,18 @@ three: 3
 
     #[test]
     fn display() -> fmt::Result {
-        let mut type_map = TypeMapOpt::<_, BoxDtDisplay>::new_typed();
-        type_map.insert("one", Some(ADisplay(1)));
+        let mut type_map_opt = TypeMapOpt::<_, BoxDtDisplay>::new_typed();
+        type_map_opt.insert("one", Some(ADisplay(1)));
 
-        let formatted = type_map
-            .iter()
-            .try_fold(String::with_capacity(64), |mut s, (k, v)| {
-                if let Some(v) = v {
-                    write!(&mut s, "{k}: {v}")?;
-                }
-                Ok(s)
-            })?;
+        let formatted =
+            type_map_opt
+                .iter()
+                .try_fold(String::with_capacity(64), |mut s, (k, v)| {
+                    if let Some(v) = v {
+                        write!(&mut s, "{k}: {v}")?;
+                    }
+                    Ok(s)
+                })?;
 
         assert_eq!("one: 1", formatted);
         Ok(())
