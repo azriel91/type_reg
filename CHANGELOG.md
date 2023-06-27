@@ -1,12 +1,13 @@
 # Changelog
 
-## unreleased
+## 0.6.0 (2023-06-27)
 
 * Add `untagged::TypeMap::unknown_entries` to access entries that did not have a type registered for deserialization.
 * Add `untagged::TypeReg::deserialize_map_with_unknowns` so unregistered values can be deserialized as a generic value type instead of returning a deserialization failure, or silently dropping entries.
 * Add `untagged::TypeMapOpt`, where entries are stored as `Option<T>`.
 * Add `untagged::TypeReg::deserialize_map_opt` to deserialize a `TypeMapOpt`.
 * Add `untagged::TypeReg::deserialize_map_opt_with_unknowns` to be able to deserialize unregistered `Option<T>` as a generic value type instead of returning a deserialization failure, or silently dropping entries.
+* `indexmap` is updated from `1.9.3` to `2.0.0`.
 
 
 ## 0.5.2 (2023-06-12)
