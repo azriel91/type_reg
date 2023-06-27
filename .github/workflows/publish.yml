@@ -71,19 +71,19 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: workspaces Cache
-        id: workspaces_cache
+      - name: cargo-release Cache
+        id: cargo_release_cache
         uses: actions/cache@v3
         with:
-          path: ~/.cargo/bin/cargo-workspaces
-          key: ${{ runner.os }}-cargo-workspaces
+          path: ~/.cargo/bin/cargo-release
+          key: ${{ runner.os }}-cargo-release
 
       - # FIXME: Switch back when actions-rs/cargo#217 gets merged
         uses: r3-os/actions-rust-cargo@fb222fe18dc90e381546d012f9e3d6f353f0f627
-        if: steps.workspaces_cache.outputs.cache-hit != 'true'
+        if: steps.cargo_release_cache.outputs.cache-hit != 'true'
         with:
           command: install
-          args: cargo-workspaces
+          args: cargo-release
 
       - name: cargo login
         # FIXME: Switch back when actions-rs/cargo#217 gets merged
@@ -92,13 +92,14 @@ jobs:
           command: login
           args: ${{ secrets.CRATES_IO_API_TOKEN }}
 
-      - # FIXME: Switch back when actions-rs/cargo#217 gets merged
-        uses: r3-os/actions-rust-cargo@fb222fe18dc90e381546d012f9e3d6f353f0f627
-        with:
-          command: workspaces
-          args: >
-            publish
-            --from-git
-            --allow-branch main
-            --force '*'
-            --no-git-tag
+      # allow-branch HEAD is because GitHub actions switches
+      # to the tag while building, which is a detached head
+      - name: "cargo release publish"
+        run: |-
+          cargo release \
+            publish \
+            --workspace \
+            --all-features \
+            --allow-branch main,HEAD \
+            --no-confirm \
+            --execute
