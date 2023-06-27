@@ -1,3 +1,5 @@
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
+
 //! Serializable map of any type.
 //!
 //! This library provides a map that can store any serializable type, and

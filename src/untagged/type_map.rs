@@ -639,6 +639,27 @@ three: 3
     }
 
     #[test]
+    fn clone_with_unknown_entries() {
+        let mut type_map = TypeMap::<_, BoxDt, UnknownEntriesSome<serde_yaml::Value>>::new_typed();
+        type_map.insert("one", A(1));
+        type_map.insert_unknown_entry("two", serde_yaml::Value::Bool(true));
+
+        let mut type_map_clone = type_map.clone();
+        type_map_clone.insert("one", A(2));
+
+        assert_eq!(Some(A(1)), type_map.get("one").copied());
+        assert_eq!(
+            Some(serde_yaml::Value::Bool(true)),
+            type_map.get_unknown_entry("two").cloned()
+        );
+        assert_eq!(Some(A(2)), type_map_clone.get("one").copied());
+        assert_eq!(
+            Some(serde_yaml::Value::Bool(true)),
+            type_map_clone.get_unknown_entry("two").cloned()
+        );
+    }
+
+    #[test]
     fn into_inner() {
         let mut type_map = TypeMap::new();
         type_map.insert("one", A(1));
@@ -797,7 +818,7 @@ three: 3
             if let Some(a) = BoxDataTypeDowncast::<A>::downcast_mut(v) {
                 a.0 = 2;
             }
-        };
+        }
 
         let one = type_map.get::<A, _>("one").copied();
         assert_eq!(Some(A(2)), one);
@@ -829,5 +850,21 @@ three: 3
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.0.fmt(f)
         }
+    }
+
+    #[test]
+    fn a_coverage() {
+        let a = Clone::clone(&A(0));
+        assert_eq!("A(0)", format!("{a:?}"));
+        assert!(serde_yaml::to_string(&a).is_ok());
+        assert_eq!(A(0), serde_yaml::from_str("0").unwrap());
+    }
+
+    #[test]
+    fn a_display_coverage() {
+        let a = Clone::clone(&ADisplay(0));
+        assert_eq!("ADisplay(0)", format!("{a:?}"));
+        assert!(serde_yaml::to_string(&a).is_ok());
+        assert_eq!(ADisplay(0), serde_yaml::from_str("0").unwrap());
     }
 }

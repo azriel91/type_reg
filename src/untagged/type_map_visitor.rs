@@ -1,4 +1,7 @@
-use std::{fmt, hash::Hash};
+use std::{
+    fmt::{self, Debug},
+    hash::Hash,
+};
 
 use serde_tagged::de::BoxFnSeed;
 
@@ -21,7 +24,7 @@ use crate::{
 /// [`DeserializeSeed`]: serde::de::DeserializeSeed
 pub struct TypeMapVisitor<'r, K, BoxDT, UnknownEntriesFn>
 where
-    K: Clone + Eq + Hash + fmt::Debug,
+    K: Clone + Debug + Eq + Hash,
 {
     type_reg: &'r TypeReg<K, BoxDT>,
     /// Function to deserialize an arbitrary value.
@@ -30,7 +33,7 @@ where
 
 impl<'r, K, BoxDT> TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
 where
-    K: Clone + Eq + Hash + fmt::Debug,
+    K: Clone + Debug + Eq + Hash,
 {
     /// Creates a new visitor with the given [`TypeReg`].
     pub fn new(type_reg: &'r TypeReg<K, BoxDT>) -> Self {
@@ -41,16 +44,10 @@ where
     }
 }
 
-impl<
-    'r,
-    K,
-    BoxDT,
-    #[cfg(not(feature = "debug"))] ValueT,
-    #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
-> TypeMapVisitor<'r, K, BoxDT, BoxFnSeed<ValueT>>
+impl<'r, K, BoxDT, ValueT> TypeMapVisitor<'r, K, BoxDT, BoxFnSeed<ValueT>>
 where
-    K: Clone + Eq + Hash + fmt::Debug,
-    ValueT: Clone + Eq,
+    K: Clone + Debug + Eq + Hash,
+    ValueT: Clone + Debug + Eq,
 {
     /// Creates a new visitor with the given [`TypeReg`].
     pub fn new(type_reg: &'r TypeReg<K, BoxDT>, fn_seed: BoxFnSeed<ValueT>) -> Self {
@@ -61,7 +58,7 @@ where
 impl<'r: 'de, 'de, K, BoxDT> serde::de::Visitor<'de>
     for TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
 where
-    K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
+    K: Clone + Debug + Eq + Hash + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
 {
     type Value = TypeMap<K, BoxDT>;
@@ -91,9 +88,9 @@ where
 impl<'r: 'de, 'de, K, BoxDT, ValueT> serde::de::Visitor<'de>
     for TypeMapVisitor<'r, K, BoxDT, BoxFnSeed<ValueT>>
 where
-    K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
+    K: Clone + Debug + Eq + Hash + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
-    ValueT: Clone + fmt::Debug + Eq,
+    ValueT: Clone + Debug + Eq,
 {
     type Value = TypeMap<K, BoxDT, UnknownEntriesSome<ValueT>>;
 

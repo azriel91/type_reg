@@ -1,13 +1,11 @@
 use std::marker::PhantomData;
 
 /// Indicates unknown entries are not stored in a given `TypeMap`.
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UnknownEntriesNone;
 
 /// Indicates unknown entries are not stored in a given `TypeMap`.
-#[cfg_attr(feature = "debug", derive(Debug))]
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UnknownEntriesSome<ValueT>(PhantomData<ValueT>);
 
 /// Associates an `UnknownEntries` type parameter with the deserialization
@@ -37,4 +35,35 @@ where
     ValueT: Clone + std::fmt::Debug + Eq,
 {
     type ValueT = ValueT;
+}
+
+#[cfg(test)]
+mod tests {
+    use std::marker::PhantomData;
+
+    use super::{UnknownEntriesNone, UnknownEntriesSome};
+
+    #[test]
+    fn clone() {
+        let _unknown_entries_none = Clone::clone(&UnknownEntriesNone);
+        let _unknown_entries_some = Clone::clone(&UnknownEntriesSome::<()>(PhantomData));
+    }
+
+    #[test]
+    fn debug() {
+        assert_eq!("UnknownEntriesNone", format!("{UnknownEntriesNone:?}"));
+        assert_eq!(
+            "UnknownEntriesSome(PhantomData<()>)",
+            format!("{:?}", UnknownEntriesSome::<()>(PhantomData))
+        );
+    }
+
+    #[test]
+    fn partial_eq() {
+        assert_eq!(UnknownEntriesNone, UnknownEntriesNone);
+        assert_eq!(
+            UnknownEntriesSome::<()>(PhantomData),
+            UnknownEntriesSome::<()>(PhantomData)
+        );
+    }
 }

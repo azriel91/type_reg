@@ -69,6 +69,7 @@ where
 {
     type Value = TypeMapOpt<K, BoxDT, UnknownEntriesNone>;
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "a map of arbitrary data types")
     }
@@ -100,6 +101,7 @@ where
 {
     type Value = TypeMapOpt<K, BoxDT, UnknownEntriesSome<ValueT>>;
 
+    #[cfg_attr(coverage_nightly, no_coverage)]
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "a map of arbitrary data types")
     }

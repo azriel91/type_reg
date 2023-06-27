@@ -613,6 +613,38 @@ three: 3
     }
 
     #[test]
+    fn clone_with_unknown_entries() {
+        let mut type_map_opt =
+            TypeMapOpt::<_, BoxDt, UnknownEntriesSome<serde_yaml::Value>>::new_typed();
+        type_map_opt.insert("one", Some(A(1)));
+        type_map_opt.insert_unknown_entry("two", Some(serde_yaml::Value::Bool(true)));
+
+        let mut type_map_opt_clone = type_map_opt.clone();
+        type_map_opt_clone.insert("one", Some(A(2)));
+
+        assert_eq!(
+            Some(Some(A(1))),
+            type_map_opt.get("one").map(Option::<&_>::copied)
+        );
+        assert_eq!(
+            Some(Some(serde_yaml::Value::Bool(true))),
+            type_map_opt
+                .get_unknown_entry("two")
+                .map(Option::<&_>::cloned)
+        );
+        assert_eq!(
+            Some(Some(A(2))),
+            type_map_opt_clone.get("one").map(Option::<&_>::copied)
+        );
+        assert_eq!(
+            Some(Some(serde_yaml::Value::Bool(true))),
+            type_map_opt_clone
+                .get_unknown_entry("two")
+                .map(Option::<&_>::cloned)
+        );
+    }
+
+    #[test]
     fn into_inner() {
         let mut type_map_opt = TypeMapOpt::new();
         type_map_opt.insert("one", Some(A(1)));
@@ -835,6 +867,12 @@ three: 3
     }
 
     #[test]
+    fn with_capacity_typed() {
+        let type_map_opt = TypeMapOpt::<&str, BoxDtDisplay>::with_capacity_typed(5);
+        assert!(type_map_opt.capacity() >= 5);
+    }
+
+    #[test]
     fn deref_mut() {
         let mut type_map_opt = TypeMapOpt::new();
         type_map_opt.insert("one", Some(A(1)));
@@ -843,7 +881,7 @@ three: 3
             if let Some(a) = BoxDataTypeDowncast::<A>::downcast_mut(v) {
                 a.0 = 2;
             }
-        };
+        }
 
         let one_plus_one = type_map_opt
             .get::<A, _>("one")
@@ -880,5 +918,21 @@ three: 3
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.0.fmt(f)
         }
+    }
+
+    #[test]
+    fn a_coverage() {
+        let a = Clone::clone(&A(0));
+        assert_eq!("A(0)", format!("{a:?}"));
+        assert!(serde_yaml::to_string(&a).is_ok());
+        assert_eq!(A(0), serde_yaml::from_str("0").unwrap());
+    }
+
+    #[test]
+    fn a_display_coverage() {
+        let a = Clone::clone(&ADisplay(0));
+        assert_eq!("ADisplay(0)", format!("{a:?}"));
+        assert!(serde_yaml::to_string(&a).is_ok());
+        assert_eq!(ADisplay(0), serde_yaml::from_str("0").unwrap());
     }
 }

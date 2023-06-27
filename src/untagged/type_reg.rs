@@ -535,8 +535,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::untagged::{BoxDataTypeDowncast, TypeMap, TypeReg};
+    use std::fmt;
+
     use serde::{Deserialize, Serialize};
+
+    use crate::untagged::{BoxDataTypeDowncast, BoxDtDisplay, TypeMap, TypeMapOpt, TypeReg};
 
     #[test]
     fn deserialize_single() {
@@ -575,28 +578,98 @@ mod tests {
         assert_eq!(Some(A(3)), data_a);
     }
 
+    #[test]
+    fn deserialize_map_new_typed() {
+        let mut type_reg = TypeReg::<String, BoxDtDisplay>::new_typed();
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<u64>(String::from("two"));
+        type_reg.register::<A>(String::from("three"));
+
+        let serialized = "---\n\
+        one: 1\n\
+        two: 2\n\
+        three: 3\n\
+        ";
+
+        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let type_map: TypeMap<String, BoxDtDisplay> =
+            type_reg.deserialize_map(deserializer).unwrap();
+
+        let data_u32 = type_map.get::<u32, _>("one").copied();
+        let data_u64 = type_map.get::<u64, _>("two").copied();
+        let data_a = type_map.get::<A, _>("three").copied();
+
+        assert_eq!(Some(1u32), data_u32);
+        assert_eq!(Some(2u64), data_u64);
+        assert_eq!(Some(A(3)), data_a);
+    }
+
+    #[test]
+    fn deserialize_map_with_capacity_typed() {
+        let mut type_reg = TypeReg::<String, BoxDtDisplay>::with_capacity_typed(3);
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<u64>(String::from("two"));
+        type_reg.register::<A>(String::from("three"));
+
+        let serialized = "---\n\
+        one: 1\n\
+        two: 2\n\
+        three: 3\n\
+        ";
+
+        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let type_map: TypeMap<String, BoxDtDisplay> =
+            type_reg.deserialize_map(deserializer).unwrap();
+
+        let data_u32 = type_map.get::<u32, _>("one").copied();
+        let data_u64 = type_map.get::<u64, _>("two").copied();
+        let data_a = type_map.get::<A, _>("three").copied();
+
+        assert_eq!(Some(1u32), data_u32);
+        assert_eq!(Some(2u64), data_u64);
+        assert_eq!(Some(A(3)), data_a);
+    }
+
     #[cfg(feature = "ordered")]
     #[test]
-    fn deserialize_has_good_error_message() {
+    fn deserialize_single_has_good_error_message_when_type_not_registered() {
         let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
 
         let deserializer = serde_yaml::Deserializer::from_str("two: 2");
-        if let Err(error) = type_reg.deserialize_single(deserializer) {
-            assert_eq!(
-                r#"Type key `"two"` not registered in type registry.
+        let error = type_reg.deserialize_single(deserializer).unwrap_err();
+        assert_eq!(
+            r#"Type key `"two"` not registered in type registry.
 Available types are:
 
 - "one"
 - "three"
 
 "#,
-                format!("{error}")
-            );
-        } else {
-            panic!("Expected `deserialize_single` to return error.");
-        }
+            format!("{error}")
+        );
+    }
+
+    #[cfg(feature = "ordered")]
+    #[test]
+    fn deserialize_map_opt_has_good_error_message_when_type_not_registered() {
+        let mut type_reg = TypeReg::<String>::new();
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<A>(String::from("three"));
+
+        let deserializer = serde_yaml::Deserializer::from_str("two: 2");
+        let error = type_reg.deserialize_map_opt(deserializer).unwrap_err();
+        assert_eq!(
+            r#"Type key `"two"` not registered in type registry.
+Available types are:
+
+- "one"
+- "three"
+
+"#,
+            format!("{error}")
+        );
     }
 
     #[test]
@@ -661,6 +734,33 @@ Available types are:
             Some(serde_json::Value::Number(serde_json::Number::from(2u64)))
         );
         assert_eq!(1, type_map.unknown_entries().len());
+    }
+
+    #[test]
+    fn deserialize_map_opt() {
+        let mut type_reg = TypeReg::<String>::new();
+        type_reg.register::<u32>(String::from("one"));
+        type_reg.register::<u64>(String::from("two"));
+        type_reg.register::<A>(String::from("three"));
+
+        let serialized = "---\n\
+        one: 1\n\
+        two: 2\n\
+        three: null\n\
+        ";
+
+        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let type_map_opt: TypeMapOpt<String> = type_reg.deserialize_map_opt(deserializer).unwrap();
+
+        let data_u32 = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
+        let data_u64 = type_map_opt.get::<u64, _>("two").map(|two| two.copied());
+        let data_a = type_map_opt
+            .get::<A, _>("three")
+            .map(|three| three.copied());
+
+        assert_eq!(Some(Some(1u32)), data_u32);
+        assert_eq!(Some(Some(2u64)), data_u64);
+        assert_eq!(Some(None), data_a);
     }
 
     #[test]
@@ -767,6 +867,12 @@ Available types are:
     }
 
     #[test]
+    fn deref_mut() {
+        let mut type_reg = TypeReg::<String>::new();
+        assert!(type_reg.get_mut("one").is_none())
+    }
+
+    #[test]
     fn debug() {
         let mut type_reg = TypeReg::new();
         type_reg.register::<A>("one");
@@ -776,4 +882,18 @@ Available types are:
 
     #[derive(Clone, Copy, Debug, PartialEq, Deserialize, Serialize)]
     struct A(u32);
+
+    impl fmt::Display for A {
+        #[cfg_attr(coverage_nightly, no_coverage)]
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.0.fmt(f)
+        }
+    }
+
+    #[test]
+    fn a_coverage() {
+        let a = Clone::clone(&A(0));
+        assert_eq!("A(0)", format!("{a:?}"));
+        assert!(serde_yaml::to_string(&a).is_ok());
+    }
 }
