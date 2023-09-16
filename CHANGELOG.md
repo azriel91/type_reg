@@ -1,5 +1,11 @@
 # Changelog
 
+## unreleased
+
+* Update dependency versions.
+* Update coverage attribute due to `cargo-llvm-cov` upgrade.
+
+
 ## 0.6.0 (2023-06-27)
 
 * Add `untagged::TypeMap::unknown_entries` to access entries that did not have a type registered for deserialization.
