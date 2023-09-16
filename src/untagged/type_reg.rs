@@ -884,7 +884,7 @@ Available types are:
     struct A(u32);
 
     impl fmt::Display for A {
-        #[cfg_attr(coverage_nightly, no_coverage)]
+        #[cfg_attr(coverage_nightly, coverage(off))]
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             self.0.fmt(f)
         }
