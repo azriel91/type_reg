@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.2 (2023-09-23)
+
+* Update dependency versions.
+
+
 ## 0.6.1 (2023-09-16)
 
 * Update dependency versions.
