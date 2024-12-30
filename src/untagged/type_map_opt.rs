@@ -268,6 +268,9 @@ where
     /// let one = type_map.get::<u32, _>("one").map(|one| one.copied());
     /// assert_eq!(Some(Some(1)), one);
     /// ```
+    // `Debug` needs to be toggled by feature, and we can't have attributes in `where` clauses,
+    // see <https://github.com/rust-lang/rust/issues/115590>.
+    #[allow(clippy::multiple_bound_locations)]
     pub fn get<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug, Q>(
         &self,
         q: &Q,
@@ -308,6 +311,9 @@ where
     ///             .map(|one| **one += 1);
     ///     });
     /// assert_eq!(Some(Some(&mut 2)), one_plus_one_opt);
+    // `Debug` needs to be toggled by feature, and we can't have attributes in
+    // `where` clauses, see <https://github.com/rust-lang/rust/issues/115590>.
+    #[allow(clippy::multiple_bound_locations)]
     pub fn get_mut<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug, Q>(
         &mut self,
         q: &Q,
@@ -525,7 +531,7 @@ where
     inner: &'inner Map<K, Option<BoxDT>>,
 }
 
-impl<'inner, K, BoxDT> Debug for InnerWrapper<'inner, K, BoxDT>
+impl<K, BoxDT> Debug for InnerWrapper<'_, K, BoxDT>
 where
     K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
@@ -651,7 +657,7 @@ three: 3
 
         let index_map = type_map_opt.into_inner();
 
-        assert!(index_map.get("one").is_some());
+        assert!(index_map.contains_key("one"));
     }
 
     #[test]

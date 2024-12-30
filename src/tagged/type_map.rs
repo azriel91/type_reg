@@ -382,7 +382,7 @@ where
     inner: &'inner Map<K, Box<dyn DataType>>,
 }
 
-impl<'inner, K> Debug for InnerWrapper<'inner, K>
+impl<K> Debug for InnerWrapper<'_, K>
 where
     K: Eq + Hash + Debug,
 {

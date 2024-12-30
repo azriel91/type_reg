@@ -41,7 +41,7 @@ where
 downcast_rs::impl_downcast!(sync DataType);
 dyn_clone::clone_trait_object!(DataType);
 
-impl<'a> serde::Serialize for dyn DataType + 'a {
+impl serde::Serialize for dyn DataType + '_ {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

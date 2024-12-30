@@ -22,7 +22,7 @@ pub struct TypeReg<'key> {
     fn_seeds: Map<Cow<'key, str>, BoxFnSeed<Box<dyn DataType>>>,
 }
 
-impl<'key> TypeReg<'key> {
+impl TypeReg<'_> {
     // Creates an empty `TypeReg`.
     ///
     /// The map is initially created with a capacity of 0, so it will not
@@ -172,7 +172,7 @@ impl<'key> TypeReg<'key> {
     }
 }
 
-impl<'key> fmt::Debug for TypeReg<'key> {
+impl fmt::Debug for TypeReg<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut debug_map = f.debug_map();
 
@@ -194,7 +194,7 @@ impl<'key> Deref for TypeReg<'key> {
     }
 }
 
-impl<'key> DerefMut for TypeReg<'key> {
+impl DerefMut for TypeReg<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.fn_seeds
     }
