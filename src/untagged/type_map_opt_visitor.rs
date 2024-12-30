@@ -42,12 +42,12 @@ where
 }
 
 impl<
-    'r,
-    K,
-    BoxDT,
-    #[cfg(not(feature = "debug"))] ValueT,
-    #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
-> TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
+        'r,
+        K,
+        BoxDT,
+        #[cfg(not(feature = "debug"))] ValueT,
+        #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
+    > TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
 where
     K: Clone + Eq + Hash + fmt::Debug,
     ValueT: Clone + Eq,

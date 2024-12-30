@@ -254,10 +254,7 @@ where
     /// assert_eq!(Some(Some(1)), data_u32);
     /// assert_eq!(Some(None), data_u64);
     /// ```
-    pub fn deserialize_map_opt<'de, D, E>(
-        &self,
-        deserializer: D,
-    ) -> Result<TypeMapOpt<K, BoxDT>, E>
+    pub fn deserialize_map_opt<'de, D, E>(&self, deserializer: D) -> Result<TypeMapOpt<K, BoxDT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,

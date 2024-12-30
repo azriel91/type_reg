@@ -55,8 +55,7 @@ where
     }
 }
 
-impl<'r, 'de, K, BoxDT> serde::de::Visitor<'de>
-    for TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
+impl<'r, 'de, K, BoxDT> serde::de::Visitor<'de> for TypeMapVisitor<'r, K, BoxDT, UnknownEntriesNone>
 where
     K: Clone + Debug + Eq + Hash + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
