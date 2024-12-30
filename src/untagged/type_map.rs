@@ -554,7 +554,7 @@ where
     inner: &'inner Map<K, BoxDT>,
 }
 
-impl<'inner, K, BoxDT> Debug for InnerWrapper<'inner, K, BoxDT>
+impl<K, BoxDT> Debug for InnerWrapper<'_, K, BoxDT>
 where
     K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
@@ -666,7 +666,7 @@ three: 3
 
         let index_map = type_map.into_inner();
 
-        assert!(index_map.get("one").is_some());
+        assert!(index_map.contains_key("one"));
     }
 
     #[cfg(not(feature = "debug"))]

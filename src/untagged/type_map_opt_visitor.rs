@@ -42,12 +42,12 @@ where
 }
 
 impl<
-    'r,
-    K,
-    BoxDT,
-    #[cfg(not(feature = "debug"))] ValueT,
-    #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
-> TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
+        'r,
+        K,
+        BoxDT,
+        #[cfg(not(feature = "debug"))] ValueT,
+        #[cfg(feature = "debug")] ValueT: std::fmt::Debug,
+    > TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
 where
     K: Clone + Eq + Hash + fmt::Debug,
     ValueT: Clone + Eq,
@@ -61,8 +61,7 @@ where
     }
 }
 
-impl<'r, 'de, K, BoxDT> serde::de::Visitor<'de>
-    for TypeMapOptVisitor<'r, K, BoxDT, UnknownEntriesNone>
+impl<'de, K, BoxDT> serde::de::Visitor<'de> for TypeMapOptVisitor<'_, K, BoxDT, UnknownEntriesNone>
 where
     K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,
@@ -92,8 +91,8 @@ where
     }
 }
 
-impl<'r, 'de, K, BoxDT, ValueT> serde::de::Visitor<'de>
-    for TypeMapOptVisitor<'r, K, BoxDT, BoxFnSeed<Option<ValueT>>>
+impl<'de, K, BoxDT, ValueT> serde::de::Visitor<'de>
+    for TypeMapOptVisitor<'_, K, BoxDT, BoxFnSeed<Option<ValueT>>>
 where
     K: Clone + Eq + Hash + fmt::Debug + serde::Deserialize<'de> + 'de + 'static,
     BoxDT: DataTypeWrapper + 'static,

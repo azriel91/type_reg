@@ -268,6 +268,9 @@ where
     /// let one = type_map.get::<u32, _>("one").map(|one| one.copied());
     /// assert_eq!(Some(Some(1)), one);
     /// ```
+    // `Debug` needs to be toggled by feature, and we can't have attributes in `where` clauses,
+    // see <https://github.com/rust-lang/rust/issues/115590>.
+    #[allow(clippy::multiple_bound_locations)]
     pub fn get<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug, Q>(
         &self,
         q: &Q,
@@ -308,6 +311,9 @@ where
     ///             .map(|one| **one += 1);
     ///     });
     /// assert_eq!(Some(Some(&mut 2)), one_plus_one_opt);
+    // `Debug` needs to be toggled by feature, and we can't have attributes in
+    // `where` clauses, see <https://github.com/rust-lang/rust/issues/115590>.
+    #[allow(clippy::multiple_bound_locations)]
     pub fn get_mut<#[cfg(not(feature = "debug"))] R, #[cfg(feature = "debug")] R: Debug, Q>(
         &mut self,
         q: &Q,
@@ -525,7 +531,7 @@ where
     inner: &'inner Map<K, Option<BoxDT>>,
 }
 
-impl<'inner, K, BoxDT> Debug for InnerWrapper<'inner, K, BoxDT>
+impl<K, BoxDT> Debug for InnerWrapper<'_, K, BoxDT>
 where
     K: Eq + Hash + Debug,
     BoxDT: DataTypeWrapper,
@@ -651,7 +657,7 @@ three: 3
 
         let index_map = type_map_opt.into_inner();
 
-        assert!(index_map.get("one").is_some());
+        assert!(index_map.contains_key("one"));
     }
 
     #[test]
@@ -719,13 +725,21 @@ three: 3
         type_map_opt.insert("one", Some(A(1)));
         type_map_opt.insert("two", None::<u64>);
 
-        assert_eq!(
-            "{\
-                \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
-                \"two\": None\
-            }",
-            format!("{type_map_opt:?}")
-        );
+        let fmt_debug = format!("{type_map_opt:?}");
+
+        // The debug string is something like this, but order is not guaranteed across
+        // rust versions:
+        //
+        // ```rust,ignore
+        // "{\
+        //     \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
+        //     \"two\": None\
+        // }",
+        // ```
+        assert!(fmt_debug.contains(
+            "\"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) })"
+        ));
+        assert!(fmt_debug.contains("\"two\": None"));
     }
 
     #[cfg(feature = "debug")]
@@ -735,16 +749,25 @@ three: 3
         type_map_opt.insert("one", Some(A(1)));
         type_map_opt.insert("two", None::<u64>);
 
-        assert_eq!(
-            "TypeMapOpt { \
-                inner: {\
-                    \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
-                    \"two\": None\
-                }, \
-                unknown_entries: {} \
-            }",
-            format!("{type_map_opt:?}")
-        );
+        let fmt_debug = format!("{type_map_opt:?}");
+
+        // The debug string is something like this, but order is not guaranteed across
+        // rust versions:
+        //
+        // ```rust,ignore
+        // "TypeMapOpt { \
+        //     inner: {\
+        //         \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
+        //         \"two\": None\
+        //     }, \
+        //     unknown_entries: {} \
+        // }",
+        // ```
+        assert!(fmt_debug.contains(
+            "\"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) })"
+        ));
+        assert!(fmt_debug.contains("\"two\": None"));
+        assert!(fmt_debug.contains("unknown_entries: {}"));
     }
 
     #[test]

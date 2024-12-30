@@ -26,7 +26,7 @@ pub trait DataTypeWrapper: std::fmt::Debug + erased_serde::Serialize {
     fn inner(&self) -> &dyn DataType;
 }
 
-impl<'a> serde::Serialize for dyn DataTypeWrapper + 'a {
+impl serde::Serialize for dyn DataTypeWrapper + '_ {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

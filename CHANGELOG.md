@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1 (2024-12-30)
+
+* Don't require `TypeReg` to live as long as the source data, only as long as deserialization. ([#14][#14])
+* Update dependency versions.
+
+
+[#14]: https://github.com/azriel91/type_reg/pull/14
+
+
 ## 0.7.0 (2023-12-30)
 
 * Update dependency versions.

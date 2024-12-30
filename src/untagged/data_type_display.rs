@@ -22,7 +22,7 @@ impl<T> DataTypeDisplay for T where
 downcast_rs::impl_downcast!(sync DataTypeDisplay);
 dyn_clone::clone_trait_object!(DataTypeDisplay);
 
-impl<'a> serde::Serialize for dyn DataTypeDisplay + 'a {
+impl serde::Serialize for dyn DataTypeDisplay + '_ {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
