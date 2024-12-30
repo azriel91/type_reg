@@ -719,13 +719,21 @@ three: 3
         type_map_opt.insert("one", Some(A(1)));
         type_map_opt.insert("two", None::<u64>);
 
-        assert_eq!(
-            "{\
-                \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
-                \"two\": None\
-            }",
-            format!("{type_map_opt:?}")
-        );
+        let fmt_debug = format!("{type_map_opt:?}");
+
+        // The debug string is something like this, but order is not guaranteed across
+        // rust versions:
+        //
+        // ```rust,ignore
+        // "{\
+        //     \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
+        //     \"two\": None\
+        // }",
+        // ```
+        assert!(fmt_debug.contains(
+            "\"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) })"
+        ));
+        assert!(fmt_debug.contains("\"two\": None"));
     }
 
     #[cfg(feature = "debug")]
@@ -735,16 +743,25 @@ three: 3
         type_map_opt.insert("one", Some(A(1)));
         type_map_opt.insert("two", None::<u64>);
 
-        assert_eq!(
-            "TypeMapOpt { \
-                inner: {\
-                    \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
-                    \"two\": None\
-                }, \
-                unknown_entries: {} \
-            }",
-            format!("{type_map_opt:?}")
-        );
+        let fmt_debug = format!("{type_map_opt:?}");
+
+        // The debug string is something like this, but order is not guaranteed across
+        // rust versions:
+        //
+        // ```rust,ignore
+        // "TypeMapOpt { \
+        //     inner: {\
+        //         \"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) }), \
+        //         \"two\": None\
+        //     }, \
+        //     unknown_entries: {} \
+        // }",
+        // ```
+        assert!(fmt_debug.contains(
+            "\"one\": Some(TypedValue { type: \"type_reg::untagged::type_map_opt::tests::A\", value: A(1) })"
+        ));
+        assert!(fmt_debug.contains("\"two\": None"));
+        assert!(fmt_debug.contains("unknown_entries: {}"));
     }
 
     #[test]
