@@ -215,7 +215,7 @@ where
     ///
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     /// ```
-    pub fn deserialize_map<'de, D, E>(&'de self, deserializer: D) -> Result<TypeMap<K, BoxDT>, E>
+    pub fn deserialize_map<'de, D, E>(&self, deserializer: D) -> Result<TypeMap<K, BoxDT>, E>
     where
         K: serde::de::Deserialize<'de> + 'de,
         D: serde::de::Deserializer<'de, Error = E>,
@@ -255,7 +255,7 @@ where
     /// assert_eq!(Some(None), data_u64);
     /// ```
     pub fn deserialize_map_opt<'de, D, E>(
-        &'de self,
+        &self,
         deserializer: D,
     ) -> Result<TypeMapOpt<K, BoxDT>, E>
     where
