@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0 (2025-01-12)
+
+* Update dependency versions.
+
+
 ## 0.7.1 (2024-12-30)
 
 * Don't require `TypeReg` to live as long as the source data, only as long as deserialization. ([#14][#14])
