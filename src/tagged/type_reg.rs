@@ -71,7 +71,7 @@ impl TypeReg<'_> {
     /// type_reg.register::<u32>();
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str("u32: 1");
     ///
     /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
     /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
@@ -112,7 +112,7 @@ impl TypeReg<'_> {
     /// type_reg.register::<u64>();
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str(
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str(
     ///     "---\n\
     ///     one: { u32: 1 }\n\
     ///     two: { u64: 2 }\n\
@@ -156,7 +156,7 @@ impl TypeReg<'_> {
     /// type_reg.register::<u32>();
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str("u32: 1");
     ///
     /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
     /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
@@ -257,7 +257,7 @@ mod tests {
         let mut type_reg = TypeReg::new();
         type_reg.register::<u32>();
 
-        let deserializer = serde_yaml::Deserializer::from_str("u32: 1");
+        let deserializer = serde_yaml_ng::Deserializer::from_str("u32: 1");
         let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
         let data_u32 = data_u32.downcast_ref::<u32>().copied();
 
@@ -277,7 +277,7 @@ mod tests {
             three: { 'type_reg::tagged::type_reg::tests::A': 3 }\n\
             ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
 
         let data_u32 = type_map.get::<u32, _>("one").copied();
@@ -296,7 +296,7 @@ mod tests {
         type_reg.register::<u32>();
         type_reg.register::<A>();
 
-        let deserializer = serde_yaml::Deserializer::from_str("u64: 2");
+        let deserializer = serde_yaml_ng::Deserializer::from_str("u64: 2");
         if let Err(error) = type_reg.deserialize_single(deserializer) {
             assert_eq!(
                 r#"Type `"u64"` not registered in type registry.

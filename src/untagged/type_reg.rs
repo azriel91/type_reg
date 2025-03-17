@@ -145,7 +145,7 @@ where
     /// type_reg.register::<u32>(String::from("one"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str("one: 1");
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str("one: 1");
     ///
     /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
     /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
@@ -202,7 +202,7 @@ where
     /// type_reg.register::<u64>(String::from("two"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str(
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str(
     ///     "---\n\
     ///     one: 1\n\
     ///     two: 2\n\
@@ -240,7 +240,7 @@ where
     /// type_reg.register::<u64>(String::from("two"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str(
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str(
     ///     "---\n\
     ///     one: 1\n\
     ///     two: null\n\
@@ -278,7 +278,7 @@ where
     /// type_reg.register::<u32>(String::from("one"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str("one: 1");
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str("one: 1");
     ///
     /// let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
     /// let data_u32 = data_u32.downcast_ref::<u32>().copied();
@@ -356,7 +356,7 @@ where
     /// type_reg.register::<u64>(String::from("two"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str(
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str(
     ///     "---\n\
     ///     one: 1\n\
     ///     two: 2\n\
@@ -365,7 +365,7 @@ where
     /// );
     ///
     /// let type_map: TypeMap<String, _, _> = type_reg
-    ///     .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+    ///     .deserialize_map_with_unknowns::<'_, serde_yaml_ng::Value, _, _>(deserializer)
     ///     .unwrap();
     /// let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();
     /// let data_u64 = type_map.get::<u64, _>("two").copied().unwrap();
@@ -373,7 +373,9 @@ where
     /// println!("{data_u32}, {data_u64}"); // prints "1, 2"
     ///
     /// assert_eq!(
-    ///     Some(serde_yaml::Value::Number(serde_yaml::Number::from(3u64))),
+    ///     Some(serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(
+    ///         3u64
+    ///     ))),
     ///     type_map.get_unknown_entry("three").cloned(),
     /// );
     /// ```
@@ -409,7 +411,7 @@ where
     /// type_reg.register::<u64>(String::from("two"));
     ///
     /// // This may be any deserializer.
-    /// let deserializer = serde_yaml::Deserializer::from_str(
+    /// let deserializer = serde_yaml_ng::Deserializer::from_str(
     ///     "---\n\
     ///     one: 1\n\
     ///     two: null\n\
@@ -418,7 +420,7 @@ where
     /// );
     ///
     /// let type_map_opt: TypeMapOpt<String, _, _> = type_reg
-    ///     .deserialize_map_opt_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+    ///     .deserialize_map_opt_with_unknowns::<'_, serde_yaml_ng::Value, _, _>(deserializer)
     ///     .unwrap();
     /// let data_u32 = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
     /// let data_u64 = type_map_opt.get::<u64, _>("two").map(|two| two.copied());
@@ -427,9 +429,9 @@ where
     /// assert_eq!(Some(None), data_u64);
     ///
     /// assert_eq!(
-    ///     Some(Some(serde_yaml::Value::Number(serde_yaml::Number::from(
-    ///         3u64
-    ///     )))),
+    ///     Some(Some(serde_yaml_ng::Value::Number(
+    ///         serde_yaml_ng::Number::from(3u64)
+    ///     ))),
     ///     type_map_opt
     ///         .get_unknown_entry("three")
     ///         .map(|three| three.cloned()),
@@ -543,7 +545,7 @@ mod tests {
         let mut type_reg = TypeReg::<String>::new();
         type_reg.register::<u32>(String::from("one"));
 
-        let deserializer = serde_yaml::Deserializer::from_str("one: 1");
+        let deserializer = serde_yaml_ng::Deserializer::from_str("one: 1");
         let data_u32 = type_reg.deserialize_single(deserializer).unwrap();
         let data_u32 = BoxDataTypeDowncast::<u32>::downcast_ref(&data_u32).copied();
 
@@ -563,7 +565,7 @@ mod tests {
         three: 3\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
 
         let data_u32 = type_map.get::<u32, _>("one").copied();
@@ -588,7 +590,7 @@ mod tests {
         three: 3\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map: TypeMap<String, BoxDtDisplay> =
             type_reg.deserialize_map(deserializer).unwrap();
 
@@ -614,7 +616,7 @@ mod tests {
         three: 3\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map: TypeMap<String, BoxDtDisplay> =
             type_reg.deserialize_map(deserializer).unwrap();
 
@@ -634,7 +636,7 @@ mod tests {
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
 
-        let deserializer = serde_yaml::Deserializer::from_str("two: 2");
+        let deserializer = serde_yaml_ng::Deserializer::from_str("two: 2");
         let error = type_reg.deserialize_single(deserializer).unwrap_err();
         assert_eq!(
             r#"Type key `"two"` not registered in type registry.
@@ -655,7 +657,7 @@ Available types are:
         type_reg.register::<u32>(String::from("one"));
         type_reg.register::<A>(String::from("three"));
 
-        let deserializer = serde_yaml::Deserializer::from_str("two: 2");
+        let deserializer = serde_yaml_ng::Deserializer::from_str("two: 2");
         let error = type_reg.deserialize_map_opt(deserializer).unwrap_err();
         assert_eq!(
             r#"Type key `"two"` not registered in type registry.
@@ -681,9 +683,9 @@ Available types are:
             three: 3\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map = type_reg
-            .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+            .deserialize_map_with_unknowns::<'_, serde_yaml_ng::Value, _, _>(deserializer)
             .unwrap();
 
         let data_u32 = type_map.get::<u32, _>("one").copied();
@@ -695,7 +697,9 @@ Available types are:
 
         assert_eq!(
             data_u64,
-            Some(serde_yaml::Value::Number(serde_yaml::Number::from(2u64)))
+            Some(serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(
+                2u64
+            )))
         );
         assert_eq!(1, type_map.unknown_entries().len());
     }
@@ -746,7 +750,7 @@ Available types are:
         three: null\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map_opt: TypeMapOpt<String> = type_reg.deserialize_map_opt(deserializer).unwrap();
 
         let data_u32 = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
@@ -775,9 +779,9 @@ Available types are:
             five: null\n\
         ";
 
-        let deserializer = serde_yaml::Deserializer::from_str(serialized);
+        let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
         let type_map_opt = type_reg
-            .deserialize_map_opt_with_unknowns::<'_, serde_yaml::Value, _, _>(deserializer)
+            .deserialize_map_opt_with_unknowns::<'_, serde_yaml_ng::Value, _, _>(deserializer)
             .unwrap();
 
         let one = type_map_opt.get::<u32, _>("one").map(|one| one.copied());
@@ -798,9 +802,9 @@ Available types are:
 
         assert_eq!(
             two,
-            Some(Some(serde_yaml::Value::Number(serde_yaml::Number::from(
-                2u64
-            ))))
+            Some(Some(serde_yaml_ng::Value::Number(
+                serde_yaml_ng::Number::from(2u64)
+            )))
         );
         assert_eq!(five, Some(None));
         assert_eq!(2, type_map_opt.unknown_entries().len());
@@ -891,6 +895,6 @@ Available types are:
     fn a_coverage() {
         let a = Clone::clone(&A(0));
         assert_eq!("A(0)", format!("{a:?}"));
-        assert!(serde_yaml::to_string(&a).is_ok());
+        assert!(serde_yaml_ng::to_string(&a).is_ok());
     }
 }

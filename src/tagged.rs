@@ -32,7 +32,7 @@
 //! type_reg.register::<u64>();
 //!
 //! // This may be any deserializer.
-//! let deserializer = serde_yaml::Deserializer::from_str(
+//! let deserializer = serde_yaml_ng::Deserializer::from_str(
 //!     "---\n\
 //!     one: { u32: 1 }\n\
 //!     two: { u64: 2 }\n\
