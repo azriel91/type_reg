@@ -15,7 +15,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions-rust-lang/audit@v1
+      - name: "Generate Cargo.lock"
+        run: cargo generate-lockfile
+      - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -79,7 +81,7 @@ jobs:
         run: ./coverage.sh
 
       - name: Upload to codecov.io
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           files: ./target/coverage/lcov.info
 
