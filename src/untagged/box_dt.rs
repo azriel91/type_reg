@@ -149,11 +149,11 @@ mod tests {
     }
 
     #[test]
-    fn serialize() -> Result<(), serde_yaml::Error> {
+    fn serialize() -> Result<(), serde_yaml_ng::Error> {
         let box_dt = BoxDt::new(1u32);
         let data_type_wrapper: &dyn DataTypeWrapper = &box_dt;
 
-        assert_eq!("1\n", serde_yaml::to_string(data_type_wrapper)?);
+        assert_eq!("1\n", serde_yaml_ng::to_string(data_type_wrapper)?);
         Ok(())
     }
 }

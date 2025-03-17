@@ -30,7 +30,7 @@
 //! type_reg.register::<u64>(String::from("two"));
 //!
 //! // This may be any deserializer.
-//! let deserializer = serde_yaml::Deserializer::from_str(
+//! let deserializer = serde_yaml_ng::Deserializer::from_str(
 //!     "---\n\
 //!     one: 1\n\
 //!     two: 2\n\

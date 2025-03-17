@@ -438,7 +438,8 @@ mod tests {
         type_map.insert("two", 2u64);
         type_map.insert("three", A(3));
 
-        let serialized = serde_yaml::to_string(&type_map).expect("Failed to serialize `type_map`.");
+        let serialized =
+            serde_yaml_ng::to_string(&type_map).expect("Failed to serialize `type_map`.");
         let expected = r#"one:
   u32: 1
 two:

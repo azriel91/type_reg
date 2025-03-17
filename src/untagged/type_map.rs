@@ -122,8 +122,8 @@ where
     /// let mut type_reg = TypeReg::<String>::new();
     ///
     /// let type_map = type_reg
-    ///     .deserialize_map_with_unknowns::<'_, serde_yaml::Value, _, _>(
-    ///         serde_yaml::Deserializer::from_str("one: 1"),
+    ///     .deserialize_map_with_unknowns::<'_, serde_yaml_ng::Value, _, _>(
+    ///         serde_yaml_ng::Deserializer::from_str("one: 1"),
     ///     )
     ///     .unwrap();
     ///
@@ -131,7 +131,9 @@ where
     ///
     /// assert_eq!(
     ///     one,
-    ///     Some(serde_yaml::Value::Number(serde_yaml::Number::from(1u32)))
+    ///     Some(serde_yaml_ng::Value::Number(serde_yaml_ng::Number::from(
+    ///         1u32
+    ///     )))
     /// );
     /// assert_eq!(1, type_map.unknown_entries().len());
     /// ```
@@ -617,7 +619,8 @@ mod tests {
         type_map.insert("two", 2u64);
         type_map.insert("three", A(3));
 
-        let serialized = serde_yaml::to_string(&type_map).expect("Failed to serialize `type_map`.");
+        let serialized =
+            serde_yaml_ng::to_string(&type_map).expect("Failed to serialize `type_map`.");
         let expected = r#"one: 1
 two: 2
 three: 3
@@ -640,21 +643,22 @@ three: 3
 
     #[test]
     fn clone_with_unknown_entries() {
-        let mut type_map = TypeMap::<_, BoxDt, UnknownEntriesSome<serde_yaml::Value>>::new_typed();
+        let mut type_map =
+            TypeMap::<_, BoxDt, UnknownEntriesSome<serde_yaml_ng::Value>>::new_typed();
         type_map.insert("one", A(1));
-        type_map.insert_unknown_entry("two", serde_yaml::Value::Bool(true));
+        type_map.insert_unknown_entry("two", serde_yaml_ng::Value::Bool(true));
 
         let mut type_map_clone = type_map.clone();
         type_map_clone.insert("one", A(2));
 
         assert_eq!(Some(A(1)), type_map.get("one").copied());
         assert_eq!(
-            Some(serde_yaml::Value::Bool(true)),
+            Some(serde_yaml_ng::Value::Bool(true)),
             type_map.get_unknown_entry("two").cloned()
         );
         assert_eq!(Some(A(2)), type_map_clone.get("one").copied());
         assert_eq!(
-            Some(serde_yaml::Value::Bool(true)),
+            Some(serde_yaml_ng::Value::Bool(true)),
             type_map_clone.get_unknown_entry("two").cloned()
         );
     }
@@ -856,15 +860,15 @@ three: 3
     fn a_coverage() {
         let a = Clone::clone(&A(0));
         assert_eq!("A(0)", format!("{a:?}"));
-        assert!(serde_yaml::to_string(&a).is_ok());
-        assert_eq!(A(0), serde_yaml::from_str("0").unwrap());
+        assert!(serde_yaml_ng::to_string(&a).is_ok());
+        assert_eq!(A(0), serde_yaml_ng::from_str("0").unwrap());
     }
 
     #[test]
     fn a_display_coverage() {
         let a = Clone::clone(&ADisplay(0));
         assert_eq!("ADisplay(0)", format!("{a:?}"));
-        assert!(serde_yaml::to_string(&a).is_ok());
-        assert_eq!(ADisplay(0), serde_yaml::from_str("0").unwrap());
+        assert!(serde_yaml_ng::to_string(&a).is_ok());
+        assert_eq!(ADisplay(0), serde_yaml_ng::from_str("0").unwrap());
     }
 }

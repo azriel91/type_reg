@@ -16,7 +16,7 @@ fn main() {
         three: 3\n\
         ";
 
-    let deserializer = serde_yaml::Deserializer::from_str(serialized);
+    let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
     let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
 
     let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();

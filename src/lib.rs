@@ -40,7 +40,7 @@
 //!     type_map.insert("two", 2u64);
 //!     type_map.insert("three", A(3));
 //!
-//!     println!("{}", serde_yaml::to_string(&type_map).unwrap());
+//!     println!("{}", serde_yaml_ng::to_string(&type_map).unwrap());
 //!
 //!     // ---
 //!     // two: 2
@@ -71,7 +71,7 @@
 //!         three: 3\n\
 //!         ";
 //!
-//!     let deserializer = serde_yaml::Deserializer::from_str(serialized);
+//!     let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
 //!     let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
 //!
 //!     let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();
@@ -105,7 +105,7 @@
 //!     type_map.insert("two", 2u64);
 //!     type_map.insert("three", A(3));
 //!
-//!     println!("{}", serde_yaml::to_string(&type_map).unwrap());
+//!     println!("{}", serde_yaml_ng::to_string(&type_map).unwrap());
 //!
 //!     // ---
 //!     // one:
@@ -139,7 +139,7 @@
 //!         three: { 'rust_out::A': 3 }\n\
 //!         ";
 //!
-//!     let deserializer = serde_yaml::Deserializer::from_str(serialized);
+//!     let deserializer = serde_yaml_ng::Deserializer::from_str(serialized);
 //!     let type_map: TypeMap<String> = type_reg.deserialize_map(deserializer).unwrap();
 //!
 //!     let data_u32 = type_map.get::<u32, _>("one").copied().unwrap();
