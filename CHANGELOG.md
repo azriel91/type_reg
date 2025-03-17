@@ -1,5 +1,11 @@
 # Changelog
 
+## unreleased
+
+* Update crate rust edition to 2024.
+* Update dependency versions.
+
+
 ## 0.8.0 (2025-01-12)
 
 * Update dependency versions.
